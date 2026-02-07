@@ -82,32 +82,34 @@ repo-memory-workflow init
 
 #### Cursor Skill
 
+**重要：** Skill 不会随 `init` 自动生成，需要**手动复制**一次。复制后重启 Cursor 或新开 chat 即可生效。
+
 **安装：** 在已 `init` 的项目根目录或本机执行：
 
 ```bash
 # 项目级（仅当前项目）
 mkdir -p .cursor/skills
-cp -r <path>/integrations/cursor/repo-memory-workflow .cursor/skills/
+cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow .cursor/skills/
 
-# 或个人级（所有项目）
+# 或个人级（所有项目生效）
 mkdir -p ~/.cursor/skills
-cp -r <path>/integrations/cursor/repo-memory-workflow ~/.cursor/skills/
+cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow ~/.cursor/skills/
 ```
 
-`<path>` 为本仓库路径，npm 安装时可用 `$(npm root -g)/repo-memory-workflow`。
+若本地开发（`git clone` + `npm link`），`<path>` 替换为本仓库路径。
 
 **使用：** 在 Cursor 中打开 AI 对话，直接说「拆一下」+ 需求、「继续」、「生成上下文包」即可，无需粘贴长 prompt。
 
 #### VSCode + Codex Skill
 
-**安装：** 执行后重启 Codex：
+**重要：** 同样需手动复制，执行后**重启 Codex** 生效。
+
+**安装：**
 
 ```bash
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -r <path>/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
+cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
-
-`<path>` 同上。
 
 **使用：** 重启 Codex 后，在 VSCode 的 Codex 对话里说「拆一下」「继续」「生成上下文包」即可。
 
@@ -319,27 +321,25 @@ This creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `L
 
 **2. Editor integrations (optional)** — Install a Skill for short commands.
 
-**Cursor Skill — Install:**
+**Cursor Skill — Install** (Skill does NOT auto-install with init; copy manually once, then restart Cursor):
 
 ```bash
 mkdir -p .cursor/skills  # or ~/.cursor/skills for global
-cp -r <path>/integrations/cursor/repo-memory-workflow .cursor/skills/
+cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow .cursor/skills/
 ```
 
 **Usage:** In Cursor chat, say "拆一下" + requirement, "继续", or "生成上下文包".
 
-**VSCode + Codex Skill — Install** (then restart Codex):
+**VSCode + Codex Skill — Install** (copy manually, then restart Codex):
 
 ```bash
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -r <path>/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
+cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
 **Usage:** In Codex chat, say "拆一下", "继续", or "生成上下文包".
 
 **Other editors** (Copilot Chat, ChatGPT): Copy prompts from `.ai/QUICK_PROMPTS.md`.
-
-`<path>` = repo path or `$(npm root -g)/repo-memory-workflow` if installed via npm.
 
 **3. Three scenarios** — See below for step-by-step walkthroughs with examples.
 
