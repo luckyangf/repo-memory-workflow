@@ -71,11 +71,57 @@ repo-memory-workflow init
   DECISIONS.md      # 重要决策
   LOG.md            # 进度日志
   TASKING_GUIDE.md  # 任务拆分指南
+  QUICK_PROMPTS.md  # 快捷 prompt 模板（无 Skill 时用）
   make_context.py   # 上下文包生成器
   tasks/            # 任务卡
 ```
 
-### 2. 三种场景详解
+### 2. 编辑器集成（可选）
+
+安装 Skill 或使用快捷 Prompt 后，可直接说「拆一下」「继续」等短指令，无需每次粘贴长 prompt。
+
+#### Cursor Skill
+
+**安装：** 在已 `init` 的项目根目录或本机执行：
+
+```bash
+# 项目级（仅当前项目）
+mkdir -p .cursor/skills
+cp -r <path>/integrations/cursor/repo-memory-workflow .cursor/skills/
+
+# 或个人级（所有项目）
+mkdir -p ~/.cursor/skills
+cp -r <path>/integrations/cursor/repo-memory-workflow ~/.cursor/skills/
+```
+
+`<path>` 为本仓库路径，npm 安装时可用 `$(npm root -g)/repo-memory-workflow`。
+
+**使用：** 在 Cursor 中打开 AI 对话，直接说「拆一下」+ 需求、「继续」、「生成上下文包」即可，无需粘贴长 prompt。
+
+#### VSCode + Codex Skill
+
+**安装：** 执行后重启 Codex：
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -r <path>/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
+`<path>` 同上。
+
+**使用：** 重启 Codex 后，在 VSCode 的 Codex 对话里说「拆一下」「继续」「生成上下文包」即可。
+
+#### 其他编辑器（Copilot Chat、ChatGPT 等）
+
+**使用：** `init` 后项目内会生成 `.ai/QUICK_PROMPTS.md`。需要时打开该文件，复制对应场景的 prompt（拆需求、继续执行、切窗口、Retrofit），粘贴给 AI 即可。
+
+**短指令与操作对照：**
+
+- **拆需求** — 对 AI 说「拆一下」+ 你的需求描述
+- **继续执行任务** — 对 AI 说「继续」
+- **切窗口前生成上下文包** — 对 AI 说「生成上下文包」或「对话快满了，帮我生成上下文包」
+
+### 3. 三种场景详解
 
 下面三种场景都有完整步骤和案例，照着做即可。
 
@@ -271,7 +317,31 @@ repo-memory-workflow init
 
 This creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `make_context.py`, and `tasks/`.
 
-**2. Three scenarios** — See below for step-by-step walkthroughs with examples.
+**2. Editor integrations (optional)** — Install a Skill for short commands.
+
+**Cursor Skill — Install:**
+
+```bash
+mkdir -p .cursor/skills  # or ~/.cursor/skills for global
+cp -r <path>/integrations/cursor/repo-memory-workflow .cursor/skills/
+```
+
+**Usage:** In Cursor chat, say "拆一下" + requirement, "继续", or "生成上下文包".
+
+**VSCode + Codex Skill — Install** (then restart Codex):
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -r <path>/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
+**Usage:** In Codex chat, say "拆一下", "继续", or "生成上下文包".
+
+**Other editors** (Copilot Chat, ChatGPT): Copy prompts from `.ai/QUICK_PROMPTS.md`.
+
+`<path>` = repo path or `$(npm root -g)/repo-memory-workflow` if installed via npm.
+
+**3. Three scenarios** — See below for step-by-step walkthroughs with examples.
 
 ---
 

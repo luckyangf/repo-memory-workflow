@@ -11,6 +11,7 @@
     "bin",
     "src",
     "templates",
+    "integrations",
     "README.md",
     "LICENSE"
   ]
