@@ -1,6 +1,6 @@
 {
   "name": "repo-memory-workflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Git-native, editor-agnostic AI workflow templates (.ai/) + context pack generator",
   "bin": {
     "repo-memory-workflow": "bin/repo-memory-workflow.js"
