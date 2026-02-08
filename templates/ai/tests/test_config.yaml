@@ -1,0 +1,44 @@
+# 测试执行配置（模板）
+#
+# 说明：
+# - 本文件用于 `repo-memory-workflow test run` 的默认执行。
+# - 推荐把 project-specific 的命令（unit/e2e/build）填到 commands 里。
+# - DB 不固定时，优先用 commands 方式跑你们已有的脚本/CLI，并把结果写入 run.json。
+
+http:
+  # 例如：http://localhost:3000
+  base_url: "http://localhost:3000"
+  requests:
+    - name: backend_health
+      method: GET
+      path: "/health"
+      expect_status: 200
+      timeout_ms: 5000
+
+commands:
+  # 这些命令会按顺序执行；失败会记录到报告里（是否 fail_fast 由 runner 参数控制）
+  - name: backend_unit_tests
+    cwd: "."
+    cmd: "echo 'TODO: replace with your backend test command (e.g. pnpm -C backend test)'"
+    optional: true
+
+  - name: frontend_unit_tests
+    cwd: "."
+    cmd: "echo 'TODO: replace with your frontend test command (e.g. pnpm -C frontend test)'"
+    optional: true
+
+  - name: e2e_smoke
+    cwd: "."
+    cmd: "echo 'TODO: replace with your e2e command (e.g. pnpm playwright test)'"
+    optional: true
+
+report:
+  title: "测试报告"
+  owners:
+    - "QA"
+    - "Dev"
+  # 可选：把环境信息写进报告（可被 runner 自动填充）
+  environment:
+    - key: "base_url"
+      value: "${http.base_url}"
+

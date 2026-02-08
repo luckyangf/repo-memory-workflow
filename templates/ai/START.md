@@ -3,6 +3,7 @@
 This repo uses `.ai/` as the editor-agnostic source-of-truth for AI work.
 
 Supported editors/tools:
+
 - Cursor
 - VSCode (Codex)
 - Antigravity
@@ -32,6 +33,7 @@ Supported editors/tools:
 ## 1) Normal workflow: NEW requirement from scratch
 
 ### Step 1: Split requirement into tasks (Planning mode)
+
 Ask AI:
 
 "Read `.ai/CONTEXT.md` and `.ai/TASKING_GUIDE.md`.
@@ -42,6 +44,7 @@ Do NOT implement code yet."
 Then paste the requirement.
 
 ### Step 2: Execute tasks (Implementation mode)
+
 Ask AI:
 
 "Read `.ai/CONTEXT.md`, `.ai/TASK.md`, and the Primary active task card.
@@ -78,11 +81,13 @@ After each step, update task card and append `.ai/LOG.md`."
 ## 3) Recovery workflow: requirement already half-done WITHOUT `.ai/` (Retrofit mode)
 
 This is REQUIRED when:
+
 - A teammate already implemented part of the feature without this workflow
 - Chat history is lost
 - The project is messy and needs task recovery
 
 ### Step 1: Create Task 000 (Retrofit)
+
 Create this file if not present:
 
 - `.ai/tasks/000_retrofit_existing_work.md`
@@ -90,15 +95,18 @@ Create this file if not present:
 Then put Task 000 into `.ai/TASK.md` -> Active as the Primary active task.
 
 ### Step 2: Run context pack
+
 Run:
 `python3 .ai/make_context.py`
 
 ### Step 3: Ask AI to recover state FIRST (do not code yet)
+
 Ask AI:
 
 "Enter retrofit mode.
 Read `.ai/CONTEXT_PACK.md`.
 Execute Task 000 ONLY:
+
 - Summarize what is already done from repo state
 - Append recovery summary into `.ai/LOG.md`
 - Split remaining work into 3~10 tasks
@@ -106,6 +114,7 @@ Execute Task 000 ONLY:
 Do NOT implement remaining tasks yet."
 
 ### Step 4: After Task 000 is done
+
 Move Task 000 to Done.
 Then start implementing the remaining tasks normally.
 
@@ -129,9 +138,31 @@ After each step, update task card and append `.ai/LOG.md`."
 ## 5) Where to put extra documents (3rd-party docs, screenshots, rules)
 
 Store external inputs under:
+
 - `.ai/resources/`
 
 Rules:
-- Keep original files if possible
-- Add a short markdown summary next to it
-- Tasks should reference resource files instead of copying large text
+
+- Prefer **versioned markdown** under `.ai/resources/**` (see `.ai/RESOURCE_GUIDE.md`)
+- Keep an index in:
+  - `.ai/resources/_index.md` (human+AI entry point)
+  - `.ai/resources/_manifest.json` (optional, machine-readable)
+- Default read rule for AI:
+  - Read `.ai/resources/_index.md`
+  - Then read only **status=active** items via their **latest** pointer
+  - Read `frozen/deprecated` only for bugfix/audit/migration (and state the reason)
+- Keep old versions (do not delete). Mark them `frozen`/`deprecated` in the index.
+
+---
+
+## 6) Testing workflow (optional, versioned)
+
+If this repo has `.ai/tests/`, you can version test assets alongside tasks/resources:
+
+- Generate cases for a specific resource version (MUST bind explicit version path)
+- Run smoke/health checks and record evidence
+- Export Excel/Word as deliverables (optional)
+
+See:
+- `.ai/tests/README.md`
+- `.ai/tests/TESTING_GUIDE.md`

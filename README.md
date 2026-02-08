@@ -20,6 +20,7 @@
 - **新需求** — 需求不清、任务散乱 → Planning 模式拆成 3~10 个任务卡，写入 `.ai/TASK.md`
 - **继续开发** — 对话上下文满了、切窗口失忆 → `make_context.py` 生成 `CONTEXT_PACK.md`，贴进新 chat 即可续写
 - **半路接手** — 项目做了一半、没文档、不知道从哪续 → Task 000 扫描代码、补齐日志/决策，拆出剩余任务
+- **版本化测试** — 绑定某个 `.ai/resources/**/versions/<ver>/...` 的权威需求快照 → 生成测试用例、执行记录与测试报告（可导出 Excel/Word）
 
 - **Git-native**：`.ai/` 跟着 repo 走，版本可控、可协作
 - **Editor-agnostic**：Cursor、VSCode、ChatGPT、任意能读文件的 AI 都能用
@@ -71,9 +72,20 @@ repo-memory-workflow init
   DECISIONS.md      # 重要决策
   LOG.md            # 进度日志
   TASKING_GUIDE.md  # 任务拆分指南
+  RESOURCE_GUIDE.md # 资源/权威输入指南（PRD、三方文档、规则等）
   QUICK_PROMPTS.md  # 快捷 prompt 模板（无 Skill 时用）
   make_context.py   # 上下文包生成器
+  resources/        # 权威资源索引与快照（建议版本化 Markdown）
   tasks/            # 任务卡
+  tests/            # 测试资产（计划/用例/执行记录/报告，支持导出）
+```
+
+### 1.1 初始化测试资产（可选）
+
+对已有项目（或旧版本 init 的项目）补齐 `.ai/tests/`：
+
+```bash
+repo-memory-workflow test init
 ```
 
 ### 2. 编辑器集成（可选）
@@ -125,7 +137,7 @@ cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflo
 
 ### 3. 三种场景详解
 
-下面三种场景都有完整步骤和案例，照着做即可。
+下面五种场景都有完整步骤和案例，照着做即可（含 `.ai/resources/` 的权威输入与版本化用法）。
 
 ---
 
@@ -248,6 +260,155 @@ python3 .ai/make_context.py
 
 ---
 
+## 场景四：大功能 / 三方对接（以三方支付为例）
+
+**适用**：对接三方支付、登录、短信、物流、风控等“大功能”，外部文档很长、易变、且细节（验签、幂等、错误码）容易出错。
+
+**目标**：把“权威输入”落到 `.ai/resources/`，让 AI 默认只读 `status=active` 的最新版本；任务卡只引用路径，不复制大段文本。
+
+**Step 1（把资料落盘）** 把外部/内部资料按版本保存到 `.ai/resources/`：
+
+```text
+.ai/resources/
+  _index.md
+  vendor_docs/stripe/versions/2026-02-08_snapshot/
+    00_meta.yaml
+    01_api_endpoints.md
+    02_webhooks.md
+    03_signing.md
+    04_idempotency.md
+    05_error_codes.md
+  prd/payment_integration/versions/2026-02-08_v1/
+    00_meta.yaml
+    01_overview.md
+    02_state_machine.md
+    03_acceptance.md
+```
+
+并在 `.ai/resources/_index.md` 登记条目（设置 `status` 与 `latest`）。
+
+**Step 2（拆任务，不写代码）** 对 AI 说（Planning）：
+
+```text
+请先读取 .ai/CONTEXT.md、.ai/RESOURCE_GUIDE.md、.ai/resources/_index.md、.ai/TASKING_GUIDE.md。
+把下面这个需求拆成 3~10 个任务卡，放到 .ai/tasks/ 下，并更新 .ai/TASK.md。
+暂时不要实现代码。
+
+【需求】对接三方支付：下单、支付回调（验签）、退款、幂等与错误码处理；并适配我方订单状态机与审计要求。
+【权威输入】以 .ai/resources/_index.md 中 status=active 的 latest 指针为准；任务卡必须引用对应资源分片路径。
+```
+
+**Step 3（实施）** 把第一个任务设为 Primary active task，执行时只按任务卡的 Next actions，并在 Inputs 中引用如：
+
+- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/03_signing.md`
+- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/04_idempotency.md`
+- `.ai/resources/prd/payment_integration/versions/2026-02-08_v1/02_state_machine.md`
+
+---
+
+## 场景五：需求变更 / 规则升级（生成新版本资源快照）
+
+**适用**：需求反复改、规则引擎/审计流/状态机变化频繁，担心 AI 用了“旧规则”实现。
+
+**目标**：每次变更都生成新版本资源快照（v1 → v2），并生成变更摘要，让 AI 先更新任务板再写代码。
+
+**Step 1（生成 v2 快照 + 变更摘要）** 直接使用 `.ai/QUICK_PROMPTS.md` 里的「需求变更 → 生成新版本资源快照」模板（或手动遵循同样步骤）：
+
+- 新建 `.ai/resources/prd/<doc_key>/versions/<new_version>/...`
+- 生成 `change_summary.md`（新增/删除/变更点 + 影响范围 + 迁移建议）
+- 更新 `.ai/resources/_index.md`（把新版本设为 `active` 的 `latest`，旧版本标成 `frozen`/`deprecated`）
+
+**Step 2（先更新任务，不写代码）** 让 AI 基于 `change_summary.md`：
+
+- 更新 `.ai/TASK.md` 的优先级/阻塞关系
+- 更新受影响任务卡的 Acceptance criteria 与 Next actions
+- 不确定的点写入 Open questions（禁止脑补）
+
+> 提示：`make_context.py` 生成的 `.ai/CONTEXT_PACK.md` 会包含 `.ai/resources/_index.md` 与 `.ai/RESOURCE_GUIDE.md`，切窗口时不会丢“权威输入索引”。
+
+---
+
+## 场景六：版本化测试（按某个需求版本生成用例/跑测试/出报告）
+
+**适用**：你的项目按“版本迭代”推进。开发基于 `.ai/resources/**/versions/<ver>/...` 的**权威需求快照**完成实现，测试希望：
+
+- 针对该版本生成一份**可审核**的测试用例（而不是每次临时口头对齐）
+- 开发完成后由开发/测试执行用例，产出**测试报告**（可导出 Excel/Word）
+
+**关键原则**：一次测试必须绑定到一个**明确的 resource 版本路径**（禁止只写 latest），否则报告不可追溯。
+
+### Step 0（可选）：初始化测试资产
+
+对旧项目（或旧版本 init 的项目）补齐 `.ai/tests/`：
+
+```bash
+repo-memory-workflow test init
+```
+
+### Step 1：生成测试用例（先生成，再人工审核）
+
+假设本次版本的权威需求快照在：
+
+` .ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md `
+
+生成该版本的测试用例与报告源文件骨架：
+
+```bash
+repo-memory-workflow test cases --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+会生成（示例）：
+
+```text
+.ai/tests/releases/<release_id>/
+  meta.json
+  cases.md
+  cases.csv
+  report.md
+```
+
+然后测试同学在 `cases.md/cases.csv` 中逐条补齐：前置条件、步骤、期望结果、测试数据，并完成审核（用例即版本资产）。
+
+### Step 2：执行（smoke/命令）并落盘证据 → 自动更新报告
+
+先在 `.ai/tests/test_config.yaml` 里配置：
+
+- `http.base_url` 与 `/health` 等检查
+- 你们已有的命令（单测/E2E/冒烟），例如 `pnpm -C backend test`、`pnpm -C frontend test`、`pnpm playwright test`
+
+然后运行：
+
+```bash
+repo-memory-workflow test run --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+会生成每次执行记录（含 stdout/stderr 摘要）：
+
+```text
+.ai/tests/runs/<timestamp>_<release_id>/
+  run.json
+  run.md
+  artifacts/
+```
+
+并自动把本次结果写入 `.ai/tests/releases/<release_id>/report.md` 的 “Latest run summary” 区块。
+
+### Step 3：导出交付物（Excel/Word）
+
+```bash
+repo-memory-workflow test export --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+导出到：
+
+```text
+.ai/tests/exports/<release_id>/
+  cases.xlsx
+  report.docx
+```
+
+> 建议把 Office 文件视为派生物（默认被 `.ai/tests/.gitignore` 忽略），Markdown/CSV/JSON 才是可审计源文件。
+
 ## 设计原则
 
 - **不猜**：缺上下文就写到 Open questions，不凭空编
@@ -317,7 +478,7 @@ npm link
 repo-memory-workflow init
 ```
 
-This creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `make_context.py`, and `tasks/`.
+This creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, and `tasks/`.
 
 **2. Editor integrations (optional)** — Install a Skill for short commands.
 
@@ -341,7 +502,7 @@ cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflo
 
 **Other editors** (Copilot Chat, ChatGPT): Copy prompts from `.ai/QUICK_PROMPTS.md`.
 
-**3. Three scenarios** — See below for step-by-step walkthroughs with examples.
+**3. Five scenarios** — See below for step-by-step walkthroughs with examples (including the `.ai/resources/` authoritative inputs + versioning workflow).
 
 ---
 
@@ -463,6 +624,151 @@ After each step, update the task card and .ai/LOG.md.
 Then continue development following the task card's Next actions—no need to re-explain context.
 
 ---
+
+### Scenario 4: Large integrations / 3rd-party docs (payment example)
+
+**When to use:** Big integrations (payments, auth, SMS, logistics, risk) where external docs are long, change frequently, and details (signing, idempotency, error codes) are easy to get wrong.
+
+**Goal:** Store authoritative inputs under `.ai/resources/` so the AI defaults to reading only the latest `status=active` resources; tasks reference paths instead of pasting large text.
+
+**Step 1 (snapshot resources)** Save external/internal docs into versioned resource folders:
+
+```text
+.ai/resources/
+  _index.md
+  vendor_docs/stripe/versions/2026-02-08_snapshot/
+    00_meta.yaml
+    01_api_endpoints.md
+    02_webhooks.md
+    03_signing.md
+    04_idempotency.md
+    05_error_codes.md
+  prd/payment_integration/versions/2026-02-08_v1/
+    00_meta.yaml
+    01_overview.md
+    02_state_machine.md
+    03_acceptance.md
+```
+
+Register entries in `.ai/resources/_index.md` (set `status` and `latest`).
+
+**Step 2 (split tasks, no code yet)** In Planning mode, say:
+
+```text
+Please read .ai/CONTEXT.md, .ai/RESOURCE_GUIDE.md, .ai/resources/_index.md, and .ai/TASKING_GUIDE.md first.
+Split the following requirement into 3~10 task cards under .ai/tasks/, and update .ai/TASK.md.
+Do NOT implement code yet.
+
+[Requirement] Integrate 3rd-party payments: create payment, handle webhook (signature verification), refund, idempotency and error handling; align with our order state machine and audit requirements.
+[Authoritative inputs] Use `.ai/resources/_index.md` entries with status=active via their latest pointers. Task cards MUST reference resource shard paths.
+```
+
+**Step 3 (implement)** Set the first task as Primary active task. Execute only its Next actions and reference resources in Inputs, e.g.:
+
+- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/03_signing.md`
+- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/04_idempotency.md`
+- `.ai/resources/prd/payment_integration/versions/2026-02-08_v1/02_state_machine.md`
+
+---
+
+### Scenario 5: Requirement changes / rules upgrades (versioned resource snapshots)
+
+**When to use:** Requirements change often (rules engines, audit flows, state machines) and you want to avoid implementing against outdated rules.
+
+**Goal:** Every change produces a new resource snapshot (v1 → v2) + `change_summary.md`, so the AI updates the task board first, then writes code.
+
+**Step 1 (create v2 snapshot + change summary)** Use the template in `.ai/QUICK_PROMPTS.md` ("Requirement change → create a new versioned resource snapshot"):
+
+- create `.ai/resources/prd/<doc_key>/versions/<new_version>/...`
+- generate `change_summary.md` (added/removed/changed + impact + migration hints)
+- update `.ai/resources/_index.md` (new version becomes `active` + `latest`; old version becomes `frozen`/`deprecated`)
+
+**Step 2 (update tasks first, no code yet)** Based on `change_summary.md`, ask the AI to:
+
+- update `.ai/TASK.md` priority/blocking
+- update affected task cards (Acceptance criteria + Next actions)
+- write uncertainties to Open questions (do NOT guess)
+
+> Tip: `.ai/CONTEXT_PACK.md` generated by `make_context.py` includes `.ai/resources/_index.md` and `.ai/RESOURCE_GUIDE.md`, so you won't lose the authoritative inputs index when switching chats.
+
+---
+
+### Scenario 6: Versioned testing (generate cases, run, report, export)
+
+**When to use:** Your project ships in versions. Development is driven by an authoritative requirements snapshot under `.ai/resources/**/versions/<ver>/...`, and QA wants a repeatable workflow to:
+
+- generate **reviewable** test cases tied to that version
+- run smoke/tests after implementation
+- produce a **test report** (optional export to Excel/Word)
+
+**Key rule:** each test run MUST bind an **explicit resource version path** (do not rely on “latest”), otherwise results are not auditable.
+
+#### Step 0 (optional): initialize testing assets
+
+If your `.ai/` was created by an older template, ensure `.ai/tests/` exists:
+
+```bash
+repo-memory-workflow test init
+```
+
+#### Step 1: generate test cases (generate first, then review)
+
+Assume the authoritative snapshot is:
+
+`.ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md`
+
+Generate version-bound cases + a report source skeleton:
+
+```bash
+repo-memory-workflow test cases --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+Outputs (example):
+
+```text
+.ai/tests/releases/<release_id>/
+  meta.json
+  cases.md
+  cases.csv
+  report.md
+```
+
+Then QA reviews and fills in preconditions/steps/expected/test data in `cases.md/cases.csv`.
+
+#### Step 2: run checks/commands, record evidence, update report
+
+Configure `.ai/tests/test_config.yaml` (base URL, health checks, and your existing unit/e2e commands), then run:
+
+```bash
+repo-memory-workflow test run --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+Each execution is recorded:
+
+```text
+.ai/tests/runs/<timestamp>_<release_id>/
+  run.json
+  run.md
+  artifacts/
+```
+
+And `.ai/tests/releases/<release_id>/report.md` is updated with a “Latest run summary”.
+
+#### Step 3: export deliverables (Excel/Word)
+
+```bash
+repo-memory-workflow test export --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+```
+
+Exports:
+
+```text
+.ai/tests/exports/<release_id>/
+  cases.xlsx
+  report.docx
+```
+
+> Keep Markdown/CSV/JSON as the source-of-truth; treat Office files as derived artifacts (ignored by default).
 
 ### Design principles
 

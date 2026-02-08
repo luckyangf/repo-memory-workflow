@@ -14,6 +14,8 @@ Turn a new requirement into a set of executable task cards under `.ai/tasks/`.
    - Open questions (if any)
 3) Prefer tasks that can be parallelized.
 4) Do NOT include large raw docs in tasks. Use `.ai/resources/` references.
+   - Prefer referencing `.ai/resources/_index.md` keys and the **latest** active version paths
+   - If you reference `frozen/deprecated`, state the reason (bugfix/audit/migration)
 5) If a task depends on another, mark it in the task as "Blocked by".
 
 ## Naming

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "resources": [
+    {
+      "key": "example_payment_prd",
+      "type": "prd",
+      "status": "active",
+      "latest": ".ai/resources/prd/example_payment_prd/versions/2026-02-08_v1/01_overview.md",
+      "applies_to": "payment service",
+      "owner": "@you",
+      "notes": "Example entry. Replace with real resources."
+    }
+  ]
+}
+

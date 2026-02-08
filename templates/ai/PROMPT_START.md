@@ -4,6 +4,8 @@ You must follow this repo workflow strictly:
 
 1) Always read:
    - .ai/CONTEXT.md
+   - .ai/resources/_index.md (if present and relevant)
+   - .ai/RESOURCE_GUIDE.md (if present)
    - .ai/TASK.md
    - The Active task file referenced in TASK.md
 
@@ -16,3 +18,7 @@ You must follow this repo workflow strictly:
    - .ai/DECISIONS.md: only if architecture/schema/API contract changed
 
 4) Keep diffs minimal and incremental.
+
+Resource reading rules (MUST):
+- Default: only use `.ai/resources/_index.md` entries with status=active via their latest pointers
+- Read frozen/deprecated only for bugfix/audit/migration (and state the reason)

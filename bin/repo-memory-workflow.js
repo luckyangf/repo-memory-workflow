@@ -3,6 +3,8 @@
 const fs = require("fs");
 const path = require("path");
 
+const { handleTest } = require("../src/commands/test");
+
 function exists(p) {
   try { fs.accessSync(p); return true; } catch { return false; }
 }
@@ -42,6 +44,7 @@ repo-memory-workflow
 
 Usage:
   repo-memory-workflow init   # create .ai/ workflow templates in current project root
+  repo-memory-workflow test   # testing workflow (init/cases/run/export)
 `);
 }
 
@@ -76,6 +79,16 @@ function main() {
 
   if (sub === "init") {
     return init(process.cwd());
+  }
+
+  if (sub === "test") {
+    const projectRoot = process.cwd();
+    const packageRoot = path.join(__dirname, "..");
+    return handleTest(args.slice(1), projectRoot, packageRoot).catch((e) => {
+      console.error("❌ test command failed:");
+      console.error(e && e.stack ? e.stack : String(e));
+      process.exit(1);
+    });
   }
 
   console.error(`Unknown command: ${sub}`);

@@ -7,6 +7,11 @@
   },
   "type": "commonjs",
   "license": "MIT",
+  "dependencies": {
+    "docx": "^9.5.1",
+    "exceljs": "^4.4.0",
+    "yaml": "^2.8.1"
+  },
   "files": [
     "bin",
     "src",

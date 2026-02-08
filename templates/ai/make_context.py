@@ -6,12 +6,23 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-AI_DIR = ROOT / ".ai"
+# This script is expected to live inside the `.ai/` directory.
+AI_DIR = Path(__file__).resolve().parent
+ROOT = AI_DIR.parent
 TASK_FILE = AI_DIR / "TASK.md"
 CONTEXT_FILE = AI_DIR / "CONTEXT.md"
 DECISIONS_FILE = AI_DIR / "DECISIONS.md"
 OUTPUT_FILE = AI_DIR / "CONTEXT_PACK.md"
+RESOURCE_GUIDE_FILE = AI_DIR / "RESOURCE_GUIDE.md"
+RESOURCES_INDEX_FILE = AI_DIR / "resources" / "_index.md"
+TESTS_DIR = AI_DIR / "tests"
+TEST_CONFIG_FILE = TESTS_DIR / "test_config.yaml"
+TEST_PLAN_FILE = TESTS_DIR / "TEST_PLAN.md"
+TEST_CASES_FILE = TESTS_DIR / "TEST_CASES.md"
+TESTS_GUIDE_FILE = TESTS_DIR / "TESTING_GUIDE.md"
+TESTS_README_FILE = TESTS_DIR / "README.md"
+TEST_RELEASES_DIR = TESTS_DIR / "releases"
+TEST_RUNS_DIR = TESTS_DIR / "runs"
 
 
 def run(cmd):
@@ -32,6 +43,33 @@ def read_text(p: Path, max_chars=20000):
     if len(s) > max_chars:
         return s[:max_chars] + "\n\n...(truncated)...\n"
     return s
+
+
+def newest_dir(p: Path):
+    try:
+        if not p.exists():
+            return None
+        dirs = [x for x in p.iterdir() if x.is_dir()]
+        if not dirs:
+            return None
+        dirs.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+        return dirs[0]
+    except Exception:
+        return None
+
+
+def newest_file(p: Path, glob_pattern: str):
+    try:
+        if not p.exists():
+            return None
+        files = list(p.glob(glob_pattern))
+        files = [x for x in files if x.is_file()]
+        if not files:
+            return None
+        files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+        return files[0]
+    except Exception:
+        return None
 
 
 # -----------------------------
@@ -185,6 +223,46 @@ def main():
 
     content.append("## .ai/DECISIONS.md (latest)\n")
     content.append(read_text(DECISIONS_FILE, max_chars=12000) + "\n\n")
+
+    # Resources (index only)
+    content.append("## .ai/RESOURCE_GUIDE.md\n")
+    content.append(read_text(RESOURCE_GUIDE_FILE, max_chars=12000) + "\n\n")
+
+    content.append("## .ai/resources/_index.md\n")
+    content.append(read_text(RESOURCES_INDEX_FILE, max_chars=12000) + "\n\n")
+
+    # Tests (optional)
+    content.append("## .ai/tests (testing assets)\n")
+    if TESTS_DIR.exists():
+        content.append(f"- Exists: {TESTS_DIR.relative_to(ROOT)}\n\n")
+        content.append("### .ai/tests/README.md\n")
+        content.append(read_text(TESTS_README_FILE, max_chars=8000) + "\n\n")
+        content.append("### .ai/tests/TESTING_GUIDE.md\n")
+        content.append(read_text(TESTS_GUIDE_FILE, max_chars=8000) + "\n\n")
+        content.append("### .ai/tests/test_config.yaml\n")
+        content.append("```yaml\n" + (read_text(TEST_CONFIG_FILE, max_chars=8000) or "(missing)") + "\n```\n\n")
+        content.append("### .ai/tests/TEST_PLAN.md\n")
+        content.append(read_text(TEST_PLAN_FILE, max_chars=8000) + "\n\n")
+        content.append("### .ai/tests/TEST_CASES.md\n")
+        content.append(read_text(TEST_CASES_FILE, max_chars=12000) + "\n\n")
+
+        latest_run_dir = newest_dir(TEST_RUNS_DIR)
+        if latest_run_dir:
+            content.append("### Latest test run (run.md)\n")
+            content.append(f"- Path: {latest_run_dir.relative_to(ROOT)}\n\n")
+            content.append(read_text(latest_run_dir / "run.md", max_chars=12000) + "\n\n")
+        else:
+            content.append("### Latest test run\n- (none)\n\n")
+
+        latest_report = newest_file(TEST_RELEASES_DIR, "**/report.md")
+        if latest_report:
+            content.append("### Latest release report.md\n")
+            content.append(f"- Path: {latest_report.relative_to(ROOT)}\n\n")
+            content.append(read_text(latest_report, max_chars=12000) + "\n\n")
+        else:
+            content.append("### Latest release report.md\n- (none)\n\n")
+    else:
+        content.append("- (missing) You can initialize via: repo-memory-workflow test init\n\n")
 
     OUTPUT_FILE.write_text("".join(content), encoding="utf-8")
     print(f"✅ Wrote: {OUTPUT_FILE}")
