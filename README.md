@@ -6,55 +6,43 @@
 
 这是一个**开源**工作流模板，专门解决 AI 辅助开发里的几类痛点：
 
-- **跨 AI 编辑器** — 不绑定 Cursor、ChatGPT、VSCode 任一产品。`.ai/` 里是纯 Markdown，任意能读文件的 AI 都能用。今天用 Cursor，明天换 ChatGPT，后天换别的，项目上下文都在。
-- **多人协同 / 同事接手** — 任务、决策、日志都写在 `.ai/` 里，随 Git 提交。同事 `pull` 后运行 `make_context.py` 生成上下文包，贴进新 chat 就能续写，无需口头交接、不丢进度。
-- **跨同一 AI 编辑器窗口** — 在 Cursor 里对话太长、上下文爆满时，不用从头讲。更新任务卡、生成 `CONTEXT_PACK.md`，切到新 chat 贴进去，就能接着干。
+- **跨 AI 编辑器** — 不绑定 Cursor、TRAE、ChatGPT、VSCode 任一产品。`.ai/` 里是纯 Markdown，任意能读文件的 AI 都能用。
+- **多人协同 / 同事接手** — 任务、决策、日志都写在 `.ai/` 里，随 Git 提交。同事 `pull` 后生成上下文包就能续写。
+- **对话上下文爆满** — 更新任务卡、生成 `CONTEXT_PACK.md`，切到新 chat 贴进去，就能接着干。
 - **半路进项目** — 代码写了一半但没文档？Task 000 会扫描项目、补齐日志与任务，再拆分剩余工作继续推进。
 
-**一套 `.ai/` 结构 + 一条 `init` 命令 + 一个 `make_context.py`**，让 AI 辅助开发可追溯、可交接、可恢复。
+**一套 `.ai/` 结构 + 一条 `init` 命令 + 编辑器规则配置**，让 AI 辅助开发可追溯、可交接、可恢复。
 
 ---
 
 ## 核心能力
 
-- **新需求** — 需求不清、任务散乱 → Planning 模式拆成 3~10 个任务卡，写入 `.ai/TASK.md`
-- **继续开发** — 对话上下文满了、切窗口失忆 → `make_context.py` 生成 `CONTEXT_PACK.md`，贴进新 chat 即可续写
-- **半路接手** — 项目做了一半、没文档、不知道从哪续 → Task 000 扫描代码、补齐日志/决策，拆出剩余任务
-- **版本化测试** — 绑定某个 `.ai/resources/**/versions/<ver>/...` 的权威需求快照 → 生成测试用例、执行记录与测试报告（可导出 Excel/Word）
+| 能力 | 说明 |
+|------|------|
+| **拆需求** | Planning 模式拆成 3~10 个任务卡，写入 `.ai/TASK.md` |
+| **继续开发** | 对话满了 / 切窗口 → 生成 `CONTEXT_PACK.md`，新 chat 续写 |
+| **半路接手** | Task 000 扫描代码、补齐日志/决策，拆出剩余任务 |
+| **版本化测试** | 绑定权威需求快照 → 生成测试用例 / 执行 / 导出 Excel·Word |
 
 - **Git-native**：`.ai/` 跟着 repo 走，版本可控、可协作
-- **Editor-agnostic**：Cursor、VSCode、ChatGPT、任意能读文件的 AI 都能用
-- **一条命令**：`repo-memory-workflow init` 在任意项目根目录初始化模板
+- **Editor-agnostic**：Cursor、TRAE、VSCode Codex、ChatGPT、任意 AI 都能用
+- **一条命令**：`repo-memory-workflow init` 在任意项目根目录初始化
 
 ---
 
-## 安装
-
-**npm 全局安装（推荐）：**
+## 一、安装
 
 ```bash
 npm i -g repo-memory-workflow
 ```
 
-macOS 若遇 `EACCES` 权限问题：
-
-```bash
-sudo npm i -g repo-memory-workflow
-```
-
-**本地开发安装：**
-
-```bash
-git clone <this-repo>
-cd repo-memory-workflow
-npm link
-```
+macOS 若遇 `EACCES`：`sudo npm i -g repo-memory-workflow`
 
 ---
 
-## 快速开始
+## 二、配置（两步搞定）
 
-### 1. 初始化
+### Step 1：初始化 `.ai/`
 
 在目标项目根目录执行：
 
@@ -66,40 +54,45 @@ repo-memory-workflow init
 
 ```text
 .ai/
-  START.md          # 工作流总览（必读）
+  START.md          # 工作流总览
   TASK.md           # 任务看板
-  CONTEXT.md        # 项目上下文
+  CONTEXT.md        # 项目上下文（技术栈、约定等）
   DECISIONS.md      # 重要决策
   LOG.md            # 进度日志
   TASKING_GUIDE.md  # 任务拆分指南
-  RESOURCE_GUIDE.md # 资源/权威输入指南（PRD、三方文档、规则等）
-  QUICK_PROMPTS.md  # 快捷 prompt 模板（无 Skill 时用）
+  RESOURCE_GUIDE.md # 资源/权威输入指南
+  QUICK_PROMPTS.md  # 快捷 prompt 模板（无规则/Skill 时用）
   make_context.py   # 上下文包生成器
-  resources/        # 权威资源索引与快照（建议版本化 Markdown）
+  resources/        # 权威资源索引与快照
   tasks/            # 任务卡
-  tests/            # 测试资产（计划/用例/执行记录/报告，支持导出）
+  tests/            # 测试资产
 ```
 
-### 1.1 初始化测试资产（可选）
+> 可选：`repo-memory-workflow test init` 补齐 `.ai/tests/`（旧项目升级用）
 
-对已有项目（或旧版本 init 的项目）补齐 `.ai/tests/`：
+### Step 2：配置编辑器规则
+
+配好后，AI 在**每次对话中自动加载**工作流规则，你只需说短指令即可，**不再需要粘贴长 prompt**。
+
+根据你使用的编辑器，选择对应方式（任选一个即可）：
+
+#### Cursor
+
+**方式 A：Cursor Rule（推荐，最简单）**
+
+打开 Cursor 设置 → **Rules, Skills, Subagents** → **Rules** → 点 **+ New** → 粘贴 `integrations/cursor/repo-memory-workflow/rule.md` 的内容 → 设为 **Always** 生效。
+
+或用命令行：
 
 ```bash
-repo-memory-workflow test init
+mkdir -p .cursor/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow/rule.md .cursor/rules/repo-memory-workflow.md
 ```
 
-### 2. 编辑器集成（可选）
-
-安装 Skill 或使用快捷 Prompt 后，可直接说「拆一下」「继续」等短指令，无需每次粘贴长 prompt。
-
-#### Cursor Skill
-
-**重要：** Skill 不会随 `init` 自动生成，需要**手动复制**一次。复制后重启 Cursor 或新开 chat 即可生效。
-
-**安装：** 在已 `init` 的项目根目录或本机执行：
+**方式 B：Cursor Skill**
 
 ```bash
-# 项目级（仅当前项目）
+# 项目级
 mkdir -p .cursor/skills
 cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow .cursor/skills/
 
@@ -108,306 +101,196 @@ mkdir -p ~/.cursor/skills
 cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow ~/.cursor/skills/
 ```
 
-若本地开发（`git clone` + `npm link`），`<path>` 替换为本仓库路径。
+#### TRAE
 
-**使用：** 在 Cursor 中打开 AI 对话，直接说「拆一下」+ 需求、「继续」、「生成上下文包」即可，无需粘贴长 prompt。
+打开 TRAE 设置 → **规则和技能** → **项目规则** → 点「创建 project_rules.md」→ 粘贴 `integrations/trae/repo-memory-workflow/project_rules.md` 的内容。
 
-#### VSCode + Codex Skill
+或用命令行：
 
-**重要：** 同样需手动复制，执行后**重启 Codex** 生效。
+```bash
+mkdir -p .trae/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/trae/repo-memory-workflow/project_rules.md .trae/rules/project_rules.md
+```
 
-**安装：**
+#### VSCode + Codex
 
 ```bash
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
 cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
-**使用：** 重启 Codex 后，在 VSCode 的 Codex 对话里说「拆一下」「继续」「生成上下文包」即可。
+重启 Codex 生效。
 
 #### 其他编辑器（Copilot Chat、ChatGPT 等）
 
-**使用：** `init` 后项目内会生成 `.ai/QUICK_PROMPTS.md`。需要时打开该文件，复制对应场景的 prompt（拆需求、继续执行、切窗口、Retrofit），粘贴给 AI 即可。
-
-**短指令与操作对照：**
-
-- **拆需求** — 对 AI 说「拆一下」+ 你的需求描述
-- **继续执行任务** — 对 AI 说「继续」
-- **切窗口前生成上下文包** — 对 AI 说「生成上下文包」或「对话快满了，帮我生成上下文包」
-
-### 3. 三种场景详解
-
-下面五种场景都有完整步骤和案例，照着做即可（含 `.ai/resources/` 的权威输入与版本化用法）。
+打开 `.ai/QUICK_PROMPTS.md`，复制对应场景的 prompt 粘贴给 AI 即可。
 
 ---
 
-## 场景一：全新需求，从零开始
+## 三、日常使用
 
-**适用**：接到一个新需求，项目已有或新建，打算用 AI 一起做。
+**配好编辑器规则后，你只需说短指令，AI 会自动读取 `.ai/` 文件并遵循工作流。**
 
-**案例**：给博客项目加「评论功能」——支持发评论、展示列表、简单的审核。
+| 你说 | AI 会做什么 |
+|------|------------|
+| **「拆一下」** + 需求描述 | 读取 CONTEXT + TASKING_GUIDE，拆成 3~10 个任务卡，更新 TASK.md。不写代码。 |
+| **「继续」** | 读取 CONTEXT + TASK + 当前任务卡，执行 Next actions。每步更新日志。 |
+| **「生成上下文包」** | 运行 `python3 .ai/make_context.py`，生成 CONTEXT_PACK.md 用于新 chat 续写。 |
+| **「补档」** | 扫描项目现状，补齐日志和任务卡，拆出剩余工作。不写代码。 |
+| **「生成测试用例」** | 绑定 resource 版本，生成可审核的测试用例。 |
+| **「跑测试」** | 执行配置的 smoke/命令，写入执行记录和报告。 |
+| **「导出测试报告」** | 导出 Excel/Word 到 `.ai/tests/exports/`。 |
 
-**步骤：**
+---
 
-**Step 1** 在项目根目录初始化（若尚未执行）：
+## 四、完整示例：给博客加评论功能
+
+下面用一个具体案例，演示从配置到完成的完整流程。
+
+> **需求**：给博客加评论功能——用户发评论、看列表、管理员审核。技术栈 Node + React。
+
+### 1. 配置（只做一次）
 
 ```bash
+# 安装工具
+npm i -g repo-memory-workflow
+
+# 在博客项目根目录初始化
+cd my-blog
 repo-memory-workflow init
+
+# 配置编辑器规则（以 Cursor Rule 为例）
+mkdir -p .cursor/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow/rule.md .cursor/rules/repo-memory-workflow.md
 ```
 
-**Step 2** 编辑 `.ai/CONTEXT.md`，填项目背景（技术栈、目录结构、关键约定）。若项目简单，可只写几行。
+### 2. 填写项目背景
 
-**Step 3** 进入 Planning 模式，让 AI 拆需求（**先不写代码**）。在 Cursor / ChatGPT 里对 AI 说：
+编辑 `.ai/CONTEXT.md`，写几行关键信息：
 
 ```text
-请先读取 .ai/CONTEXT.md 和 .ai/TASKING_GUIDE.md。
-把下面这个需求拆成 3~10 个任务卡，放到 .ai/tasks/ 下，并更新 .ai/TASK.md。
-暂时不要实现代码。
-
-【需求】给博客加评论功能：用户可发评论、看评论列表，管理员可审核。技术栈：Node + React。
+## 技术栈
+- 后端：Node.js + Express + PostgreSQL
+- 前端：React + Vite
+- 部署：Docker + Nginx
 ```
 
-AI 会创建如 `001_add_comment_api.md`、`002_comment_ui.md` 等任务卡，并更新 `.ai/TASK.md` 的 Active 列表。
+### 3. 拆需求（Planning）
 
-**Step 4** 进入 Implementation 模式，开始执行第一个任务。对 AI 说：
+在 Cursor / TRAE 对话里说：
 
-```text
-请读取 .ai/CONTEXT.md、.ai/TASK.md，以及 Primary active task（任务板里 Active 第一个）。
-只执行该任务里的 Next actions。
-每完成一步，更新任务卡和 .ai/LOG.md。
-```
+> **拆一下**，给博客加评论功能：用户发评论、看评论列表，管理员可审核。
 
-**Step 5** 每完成一个任务：把该任务从 Active 挪到 Done，把下一个任务挪进 Active，重复 Step 4。
+AI 会自动读取 `.ai/CONTEXT.md` 和 `.ai/TASKING_GUIDE.md`，然后：
+- 创建 `001_add_comment_api.md`、`002_comment_ui.md` 等任务卡
+- 更新 `.ai/TASK.md` 的 Active 列表
+- **不写代码**
+
+### 4. 开始开发（Implementation）
+
+对 AI 说：
+
+> **继续**
+
+AI 会自动读取任务板，找到第一个 Active 任务，执行 Next actions，每步更新任务卡和日志。
+
+### 5. 任务完成 → 下一个
+
+一个任务做完后，AI 会把它移到 Done，下一个任务进 Active。你继续说「继续」即可。
+
+### 6. 对话满了 → 切窗口
+
+对 AI 说：
+
+> **生成上下文包**
+
+在新 chat 里说「继续」，AI 读取 `CONTEXT_PACK.md` 自动接上进度。
 
 ---
 
-## 场景二：需求做了一半，才开始用这套流程
+## 五、更多场景
 
-**适用**：代码已经写了一部分，但没走 `.ai/` 流程，没有任务卡、没有 LOG，想「补档」后继续。
+### 场景一：全新需求，从零开始
 
-**案例**：评论功能——后端 API 和数据库已经写好，前端还没做，之前没用过 `.ai/`。
+**适用**：接到一个新需求，打算用 AI 一起做。
 
 **步骤：**
 
-**Step 1** 在项目根目录初始化：
+1. `repo-memory-workflow init`
+2. 编辑 `.ai/CONTEXT.md` 填项目背景
+3. 对 AI 说「拆一下」+ 需求描述 → AI 拆任务卡（不写代码）
+4. 对 AI 说「继续」→ AI 执行第一个任务
+5. 每完成一个任务，AI 自动切到下一个，你继续说「继续」
 
-```bash
-repo-memory-workflow init
-```
-
-**Step 2** 编辑 `.ai/TASK.md`，把 Task 000 设为唯一的 Active 任务。模板默认已是如此；若不是，把 `000_retrofit_existing_work.md` 放入 Active，其它清空。
-
-**Step 3** 生成上下文包：
-
-```bash
-python3 .ai/make_context.py
-```
-
-会生成 `.ai/CONTEXT_PACK.md`，包含当前 Git 状态、diff、CONTEXT、TASK 等。
-
-**Step 4** 让 AI 执行 Task 000（**只做补档，不写新代码**）。对 AI 说：
-
-```text
-进入 retrofit 模式。
-请读取 .ai/CONTEXT_PACK.md。
-只执行 Task 000：
-1. 快速扫描项目，总结当前已完成什么（5~10 条）
-2. 把总结追加到 .ai/LOG.md
-3. 把剩余工作拆成 3~10 个任务卡，放到 .ai/tasks/
-4. 更新 .ai/TASK.md（Active / Queued / Done）
-暂时不要实现剩余任务。
-```
-
-**Step 5** Task 000 完成后，把它移到 Done，把第一个「剩余任务」设为 Active，按场景一 Step 4 的方式继续开发。
+> **未配编辑器规则时**，Step 3 需要手动粘贴 prompt（见 `.ai/QUICK_PROMPTS.md`）；**配好规则后**直接说短指令即可。
 
 ---
 
-## 场景三：对话/窗口满了，换编辑器或开新窗口
+### 场景二：需求做了一半，才开始用这套流程（补档）
 
-**适用**：在 Cursor 里做了很久，对话太长；或要换到 ChatGPT、VSCode；或本编辑器里新开一个 chat 窗口。
-
-**案例**：在 Cursor 里开发评论功能，对话已经很长，想开一个新的 chat 继续。
+**适用**：代码已写了一部分，但没有 `.ai/` 流程，想补档后继续。
 
 **步骤：**
 
-**切窗口之前（在原 chat 里完成）：**
-
-**Step 1** 更新当前任务卡：把「Current state」写成已完成的内容，把「Next actions」改成剩余步骤（≤7 条）。
-
-**Step 2** 在 `.ai/LOG.md` 末尾追加一条，写：做了什么、改了哪些文件、下一步是什么。
-
-**Step 3** 生成上下文包：
-
-```bash
-python3 .ai/make_context.py
-```
-
-会生成 `.ai/CONTEXT_PACK.md`，包含 Git 状态、diff、最近提交、CONTEXT、TASK、当前任务内容。
-
-**在新窗口 / 新编辑器里：**
-
-**Step 4** 打开或复制 `.ai/CONTEXT_PACK.md` 的内容。若新环境能直接读文件，就让 AI 读；否则把内容粘贴进 prompt。
-
-**Step 5** 对 AI 说：
-
-```text
-请先读取 .ai/CONTEXT_PACK.md（或下方粘贴的内容）。
-从 Primary active task 的 Next actions 第 1 步继续执行。
-每完成一步，更新任务卡和 .ai/LOG.md。
-```
-
-之后按任务卡的 Next actions 继续开发即可，无需重讲背景。
+1. `repo-memory-workflow init`
+2. 运行 `python3 .ai/make_context.py` 生成上下文包
+3. 对 AI 说「补档」→ AI 扫描项目、补齐日志、拆出剩余任务（不写代码）
+4. 补档完成后，对 AI 说「继续」开始开发
 
 ---
 
-## 场景四：大功能 / 三方对接（以三方支付为例）
+### 场景三：对话/窗口满了，换编辑器或开新窗口
 
-**适用**：对接三方支付、登录、短信、物流、风控等“大功能”，外部文档很长、易变、且细节（验签、幂等、错误码）容易出错。
+**适用**：对话太长 / 换编辑器 / 开新 chat。
 
-**目标**：把“权威输入”落到 `.ai/resources/`，让 AI 默认只读 `status=active` 的最新版本；任务卡只引用路径，不复制大段文本。
+**步骤：**
 
-**Step 1（把资料落盘）** 把外部/内部资料按版本保存到 `.ai/resources/`：
-
-```text
-.ai/resources/
-  _index.md
-  vendor_docs/stripe/versions/2026-02-08_snapshot/
-    00_meta.yaml
-    01_api_endpoints.md
-    02_webhooks.md
-    03_signing.md
-    04_idempotency.md
-    05_error_codes.md
-  prd/payment_integration/versions/2026-02-08_v1/
-    00_meta.yaml
-    01_overview.md
-    02_state_machine.md
-    03_acceptance.md
-```
-
-并在 `.ai/resources/_index.md` 登记条目（设置 `status` 与 `latest`）。
-
-**Step 2（拆任务，不写代码）** 对 AI 说（Planning）：
-
-```text
-请先读取 .ai/CONTEXT.md、.ai/RESOURCE_GUIDE.md、.ai/resources/_index.md、.ai/TASKING_GUIDE.md。
-把下面这个需求拆成 3~10 个任务卡，放到 .ai/tasks/ 下，并更新 .ai/TASK.md。
-暂时不要实现代码。
-
-【需求】对接三方支付：下单、支付回调（验签）、退款、幂等与错误码处理；并适配我方订单状态机与审计要求。
-【权威输入】以 .ai/resources/_index.md 中 status=active 的 latest 指针为准；任务卡必须引用对应资源分片路径。
-```
-
-**Step 3（实施）** 把第一个任务设为 Primary active task，执行时只按任务卡的 Next actions，并在 Inputs 中引用如：
-
-- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/03_signing.md`
-- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/04_idempotency.md`
-- `.ai/resources/prd/payment_integration/versions/2026-02-08_v1/02_state_machine.md`
+1. 在原 chat 里对 AI 说「生成上下文包」
+2. AI 更新任务卡和日志，运行 `python3 .ai/make_context.py` 生成 `CONTEXT_PACK.md`
+3. 在新 chat 里说「继续」→ AI 自动读取上下文包，接上进度
 
 ---
 
-## 场景五：需求变更 / 规则升级（生成新版本资源快照）
+### 场景四：大功能 / 三方对接
 
-**适用**：需求反复改、规则引擎/审计流/状态机变化频繁，担心 AI 用了“旧规则”实现。
+**适用**：对接三方支付、登录、短信等大功能，外部文档很长、易变。
 
-**目标**：每次变更都生成新版本资源快照（v1 → v2），并生成变更摘要，让 AI 先更新任务板再写代码。
+**核心做法**：把权威文档落盘到 `.ai/resources/`，任务卡只引用路径。
 
-**Step 1（生成 v2 快照 + 变更摘要）** 直接使用 `.ai/QUICK_PROMPTS.md` 里的「需求变更 → 生成新版本资源快照」模板（或手动遵循同样步骤）：
-
-- 新建 `.ai/resources/prd/<doc_key>/versions/<new_version>/...`
-- 生成 `change_summary.md`（新增/删除/变更点 + 影响范围 + 迁移建议）
-- 更新 `.ai/resources/_index.md`（把新版本设为 `active` 的 `latest`，旧版本标成 `frozen`/`deprecated`）
-
-**Step 2（先更新任务，不写代码）** 让 AI 基于 `change_summary.md`：
-
-- 更新 `.ai/TASK.md` 的优先级/阻塞关系
-- 更新受影响任务卡的 Acceptance criteria 与 Next actions
-- 不确定的点写入 Open questions（禁止脑补）
-
-> 提示：`make_context.py` 生成的 `.ai/CONTEXT_PACK.md` 会包含 `.ai/resources/_index.md` 与 `.ai/RESOURCE_GUIDE.md`，切窗口时不会丢“权威输入索引”。
+1. 把外部资料按版本存到 `.ai/resources/vendor_docs/<key>/versions/<version>/`
+2. 在 `.ai/resources/_index.md` 登记条目
+3. 对 AI 说「拆一下」+ 需求 → AI 自动引用 resource 路径创建任务
 
 ---
 
-## 场景六：版本化测试（按某个需求版本生成用例/跑测试/出报告）
+### 场景五：需求变更 / 规则升级
 
-**适用**：你的项目按“版本迭代”推进。开发基于 `.ai/resources/**/versions/<ver>/...` 的**权威需求快照**完成实现，测试希望：
+**适用**：需求反复改，担心 AI 用了旧规则实现。
 
-- 针对该版本生成一份**可审核**的测试用例（而不是每次临时口头对齐）
-- 开发完成后由开发/测试执行用例，产出**测试报告**（可导出 Excel/Word）
+**核心做法**：每次变更生成新版本资源快照 + `change_summary.md`。
 
-**关键原则**：一次测试必须绑定到一个**明确的 resource 版本路径**（禁止只写 latest），否则报告不可追溯。
+1. 新建版本目录 + 变更摘要
+2. 更新 `_index.md`（新版本 active，旧版本 frozen）
+3. 对 AI 说：基于变更摘要更新任务（先更新任务，不写代码）
 
-### Step 0（可选）：初始化测试资产
+---
 
-对旧项目（或旧版本 init 的项目）补齐 `.ai/tests/`：
+### 场景六：版本化测试
 
-```bash
-repo-memory-workflow test init
-```
-
-### Step 1：生成测试用例（先生成，再人工审核）
-
-假设本次版本的权威需求快照在：
-
-` .ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md `
-
-生成该版本的测试用例与报告源文件骨架：
+**适用**：按版本迭代，需要可审核的测试用例和报告。
 
 ```bash
-repo-memory-workflow test cases --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
+# 生成测试用例
+repo-memory-workflow test cases --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
+
+# 执行测试
+repo-memory-workflow test run --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
+
+# 导出 Excel/Word
+repo-memory-workflow test export --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
 ```
 
-会生成（示例）：
-
-```text
-.ai/tests/releases/<release_id>/
-  meta.json
-  cases.md
-  cases.csv
-  report.md
-```
-
-然后测试同学在 `cases.md/cases.csv` 中逐条补齐：前置条件、步骤、期望结果、测试数据，并完成审核（用例即版本资产）。
-
-### Step 2：执行（smoke/命令）并落盘证据 → 自动更新报告
-
-先在 `.ai/tests/test_config.yaml` 里配置：
-
-- `http.base_url` 与 `/health` 等检查
-- 你们已有的命令（单测/E2E/冒烟），例如 `pnpm -C backend test`、`pnpm -C frontend test`、`pnpm playwright test`
-
-然后运行：
-
-```bash
-repo-memory-workflow test run --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
-```
-
-会生成每次执行记录（含 stdout/stderr 摘要）：
-
-```text
-.ai/tests/runs/<timestamp>_<release_id>/
-  run.json
-  run.md
-  artifacts/
-```
-
-并自动把本次结果写入 `.ai/tests/releases/<release_id>/report.md` 的 “Latest run summary” 区块。
-
-### Step 3：导出交付物（Excel/Word）
-
-```bash
-repo-memory-workflow test export --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
-```
-
-导出到：
-
-```text
-.ai/tests/exports/<release_id>/
-  cases.xlsx
-  report.docx
-```
-
-> 建议把 Office 文件视为派生物（默认被 `.ai/tests/.gitignore` 忽略），Markdown/CSV/JSON 才是可审计源文件。
+---
 
 ## 设计原则
 
@@ -429,349 +312,227 @@ MIT
 
 ---
 
-This is an **open-source** workflow template that addresses common pain points in AI-assisted development:
+An **open-source** workflow template for AI-assisted development:
 
-- **Cross-AI editor** — Not locked to Cursor, ChatGPT, or VSCode. `.ai/` is plain Markdown; any AI that can read files can use it. Use Cursor today, switch to ChatGPT tomorrow, try another tool later—project context stays the same.
-- **Multi-user / team handoff** — Tasks, decisions, and logs live in `.ai/`, committed with Git. A teammate pulls, runs `make_context.py` to generate a context pack, pastes it into a new chat, and continues—no verbal handoff, no lost progress.
-- **Cross-window in the same editor** — When chat context is full in Cursor, you don't start over. Update the task card, generate `CONTEXT_PACK.md`, switch to a new chat, paste it in, and keep going.
-- **Join mid-project** — Code is half done with no docs? Task 000 scans the repo, backfills logs and tasks, then splits remaining work so you can continue.
+- **Cross-AI editor** — Not locked to Cursor, TRAE, ChatGPT, or VSCode. `.ai/` is plain Markdown; any AI that can read files can use it.
+- **Team handoff** — Tasks, decisions, and logs live in `.ai/`, committed with Git. Teammates pull, generate a context pack, and continue.
+- **Chat overflow** — Update task card, generate `CONTEXT_PACK.md`, paste into new chat, keep going.
+- **Join mid-project** — Task 000 scans the repo, backfills logs/tasks, splits remaining work.
 
-**One `.ai/` structure + one `init` command + one `make_context.py`**—makes AI-assisted development traceable, handoff-ready, and recoverable.
+**One `.ai/` structure + one `init` command + editor rules config** — traceable, handoff-ready, recoverable.
+
+---
 
 ### Capabilities
 
-- **New requirement** — Vague scope, scattered tasks → Planning mode: split into 3~10 task cards, write to `.ai/TASK.md`
-- **Continue work** — Chat context full, lose memory on new window → `make_context.py` → `CONTEXT_PACK.md` → paste into new chat
-- **Join mid-project** — Half-done code, no docs → Task 000: scan repo, backfill LOG/DECISIONS, split remaining tasks
+| Capability | Description |
+|-----------|------------|
+| **Split requirement** | Planning mode: 3~10 task cards → `.ai/TASK.md` |
+| **Continue work** | Chat full → `CONTEXT_PACK.md` → paste in new chat |
+| **Join mid-project** | Task 000: scan repo, backfill, split remaining tasks |
+| **Versioned testing** | Bind resource snapshot → generate cases / run / export Excel·Word |
 
 - **Git-native** — `.ai/` lives in repo, versioned, shareable
-- **Editor-agnostic** — Cursor, VSCode, ChatGPT, any AI that reads files
-- **One command** — `repo-memory-workflow init` to bootstrap any project
+- **Editor-agnostic** — Cursor, TRAE, VSCode Codex, ChatGPT, any AI
+- **One command** — `repo-memory-workflow init`
 
-### Install
+---
 
-**npm global install (recommended):**
+### 1. Install
 
 ```bash
 npm i -g repo-memory-workflow
 ```
 
-If you see `EACCES` permission errors on macOS:
+macOS permission issues: `sudo npm i -g repo-memory-workflow`
 
-```bash
-sudo npm i -g repo-memory-workflow
-```
+---
 
-**Local dev install:**
+### 2. Configure (two steps)
 
-```bash
-git clone <this-repo>
-cd repo-memory-workflow
-npm link
-```
+#### Step 1: Initialize `.ai/`
 
-### Quick Start
-
-**1. Initialize** — In your project root:
+In your project root:
 
 ```bash
 repo-memory-workflow init
 ```
 
-This creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, and `tasks/`.
+Creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, `tasks/`, `tests/`.
 
-**2. Editor integrations (optional)** — Install a Skill for short commands.
+> Optional: `repo-memory-workflow test init` to add `.ai/tests/` for older projects.
 
-**Cursor Skill — Install** (Skill does NOT auto-install with init; copy manually once, then restart Cursor):
+#### Step 2: Configure editor rules
+
+After configuration, AI **automatically loads** the workflow rules in every conversation. You only need short commands — **no more pasting long prompts**.
+
+Pick your editor:
+
+**Cursor**
+
+*Option A: Cursor Rule (recommended, simplest)* — Open Cursor Settings → **Rules, Skills, Subagents** → **Rules** → click **+ New** → paste the content of `integrations/cursor/repo-memory-workflow/rule.md` → set to **Always**.
+
+Or via CLI:
+
+```bash
+mkdir -p .cursor/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow/rule.md .cursor/rules/repo-memory-workflow.md
+```
+
+*Option B: Cursor Skill* —
 
 ```bash
 mkdir -p .cursor/skills  # or ~/.cursor/skills for global
 cp -r $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow .cursor/skills/
 ```
 
-**Usage:** In Cursor chat, say "拆一下" + requirement, "继续", or "生成上下文包".
+**TRAE**
 
-**VSCode + Codex Skill — Install** (copy manually, then restart Codex):
+Open TRAE Settings → **Rules & Skills** → **Project Rules** → create `project_rules.md` → paste the content of `integrations/trae/repo-memory-workflow/project_rules.md`.
+
+Or via CLI:
+
+```bash
+mkdir -p .trae/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/trae/repo-memory-workflow/project_rules.md .trae/rules/project_rules.md
+```
+
+**VSCode + Codex**
 
 ```bash
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
 cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflow "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
-**Usage:** In Codex chat, say "拆一下", "继续", or "生成上下文包".
+Restart Codex to activate.
 
-**Other editors** (Copilot Chat, ChatGPT): Copy prompts from `.ai/QUICK_PROMPTS.md`.
+**Other editors** (Copilot Chat, ChatGPT, etc.)
 
-**3. Five scenarios** — See below for step-by-step walkthroughs with examples (including the `.ai/resources/` authoritative inputs + versioning workflow).
+Open `.ai/QUICK_PROMPTS.md` and copy the prompt for your scenario.
 
 ---
 
-### Scenario 1: New requirement, from scratch
+### 3. Daily usage
 
-**When to use:** You have a new requirement, project exists or is new, and you want AI to help.
+**After configuring editor rules, just say short commands. AI automatically reads `.ai/` files and follows the workflow.**
 
-**Example:** Add a "comment feature" to a blog—post comments, list comments, simple moderation.
+| You say | AI does |
+|---------|---------|
+| **"拆一下"** + requirement | Read CONTEXT + TASKING_GUIDE, split into 3~10 task cards, update TASK.md. No code. |
+| **"继续"** / "continue" | Read CONTEXT + TASK + active task card, execute Next actions. Update logs after each step. |
+| **"生成上下文包"** / "context pack" | Run `python3 .ai/make_context.py`, generate CONTEXT_PACK.md for new chat. |
+| **"补档"** / "retrofit" | Scan project, backfill logs and tasks, split remaining work. No code. |
+| **"生成测试用例"** / "test cases" | Bind resource version, generate reviewable test cases. |
+| **"跑测试"** / "run tests" | Run configured smoke/commands, write run records and report. |
+| **"导出测试报告"** / "export report" | Export Excel/Word to `.ai/tests/exports/`. |
 
-**Steps:**
+---
 
-**Step 1** Initialize in project root (if not done yet):
+### 4. Full example: add comment feature to a blog
+
+> **Requirement:** Add comments to a blog — users post comments, view list, admin moderates. Tech: Node + React.
+
+#### Setup (once)
 
 ```bash
+npm i -g repo-memory-workflow
+cd my-blog
 repo-memory-workflow init
+
+# Configure editor rules (Cursor Rule example)
+mkdir -p .cursor/rules
+cp $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow/rule.md .cursor/rules/repo-memory-workflow.md
 ```
 
-**Step 2** Edit `.ai/CONTEXT.md` with project background (tech stack, folder structure, key conventions). A few lines are fine for simple projects.
-
-**Step 3** Planning mode—ask AI to split the requirement (**no code yet**). In Cursor / ChatGPT, say:
+Edit `.ai/CONTEXT.md` with your tech stack:
 
 ```text
-Please read .ai/CONTEXT.md and .ai/TASKING_GUIDE.md first.
-Split the following requirement into 3~10 task cards under .ai/tasks/, and update .ai/TASK.md.
-Do NOT implement code yet.
-
-[Requirement] Add comment feature to the blog: users can post comments, view comment list, admin can moderate. Tech stack: Node + React.
+## Tech stack
+- Backend: Node.js + Express + PostgreSQL
+- Frontend: React + Vite
+- Deploy: Docker + Nginx
 ```
 
-AI will create task cards like `001_add_comment_api.md`, `002_comment_ui.md`, and update `.ai/TASK.md` Active list.
+#### Split requirement (Planning)
 
-**Step 4** Implementation mode—execute the first task. Say:
+In Cursor / TRAE chat, say:
 
-```text
-Please read .ai/CONTEXT.md, .ai/TASK.md, and the Primary active task (first in Active on the task board).
-Execute ONLY the Next actions in that task.
-After each step, update the task card and .ai/LOG.md.
-```
+> **拆一下**, add comment feature: users post comments, view list, admin can moderate.
 
-**Step 5** When a task is done: move it from Active to Done, move the next task into Active, repeat Step 4.
+AI automatically reads `.ai/CONTEXT.md` + `.ai/TASKING_GUIDE.md`, creates task cards like `001_add_comment_api.md`, `002_comment_ui.md`, updates `.ai/TASK.md`. **No code yet.**
+
+#### Develop (Implementation)
+
+Say:
+
+> **继续** (or "continue")
+
+AI reads the task board, finds the first Active task, executes Next actions, updates the task card and logs after each step.
+
+#### Task done → next
+
+When a task is complete, AI moves it to Done, activates the next one. Just keep saying "继续".
+
+#### Chat full → switch window
+
+Say:
+
+> **生成上下文包** (or "context pack")
+
+In the new chat, say "继续" — AI reads `CONTEXT_PACK.md` and picks up where you left off.
 
 ---
 
-### Scenario 2: Work is half done, start using this workflow now
+### 5. More scenarios
 
-**When to use:** Code is already partially written, but you never used `.ai/`—no task cards, no LOG. You want to backfill and continue.
+#### Scenario 1: New requirement from scratch
 
-**Example:** Comment feature—backend API and DB are done, frontend is not. Never used `.ai/` before.
+1. `repo-memory-workflow init`
+2. Edit `.ai/CONTEXT.md` with project background
+3. Say "拆一下" + requirement → AI creates task cards (no code)
+4. Say "继续" → AI executes first task
+5. Repeat "继续" for each subsequent task
 
-**Steps:**
+> Without editor rules, Step 3 requires pasting a long prompt from `.ai/QUICK_PROMPTS.md`. With rules configured, just say short commands.
 
-**Step 1** Initialize in project root:
+#### Scenario 2: Join mid-project (retrofit)
+
+1. `repo-memory-workflow init`
+2. Run `python3 .ai/make_context.py`
+3. Say "补档" → AI scans project, backfills logs, splits remaining tasks (no code)
+4. Say "继续" to start development
+
+#### Scenario 3: Chat full, switch window/editor
+
+1. Say "生成上下文包" in current chat
+2. AI updates task card + logs, generates `CONTEXT_PACK.md`
+3. In new chat, say "继续" → AI resumes from where you left off
+
+#### Scenario 4: Large integrations / 3rd-party docs
+
+Store authoritative docs under `.ai/resources/` with versioned snapshots. Task cards reference resource paths instead of pasting large text. Say "拆一下" + requirement — AI auto-references active resources.
+
+#### Scenario 5: Requirement changes
+
+Create a new version snapshot + `change_summary.md`. Update `_index.md` (new = active, old = frozen). Ask AI to update tasks based on changes first, then code.
+
+#### Scenario 6: Versioned testing
 
 ```bash
-repo-memory-workflow init
+# Generate test cases
+repo-memory-workflow test cases --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
+
+# Run tests
+repo-memory-workflow test run --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
+
+# Export Excel/Word
+repo-memory-workflow test export --resource ".ai/resources/prd/foo/versions/v1/01_overview.md"
 ```
-
-**Step 2** Edit `.ai/TASK.md` so Task 000 is the only Active task. The template default already does this; if not, put `000_retrofit_existing_work.md` in Active and clear the rest.
-
-**Step 3** Generate context pack:
-
-```bash
-python3 .ai/make_context.py
-```
-
-This produces `.ai/CONTEXT_PACK.md` with current Git status, diff, CONTEXT, TASK, etc.
-
-**Step 4** Ask AI to run Task 000 (**backfill only, no new code**). Say:
-
-```text
-Enter retrofit mode.
-Please read .ai/CONTEXT_PACK.md.
-Execute ONLY Task 000:
-1. Quick scan of the repo, summarize what's already done (5~10 bullets)
-2. Append the summary to .ai/LOG.md
-3. Split remaining work into 3~10 task cards under .ai/tasks/
-4. Update .ai/TASK.md (Active / Queued / Done)
-Do NOT implement remaining tasks yet.
-```
-
-**Step 5** When Task 000 is done, move it to Done, set the first "remaining task" as Active, and continue as in Scenario 1 Step 4.
 
 ---
-
-### Scenario 3: Chat/window full, switch editor or open new window
-
-**When to use:** You've been working in Cursor for a long time, chat is too long; or you want to switch to ChatGPT, VSCode; or open a new chat window in the same editor.
-
-**Example:** Developing comment feature in Cursor, chat is very long, want to open a new chat to continue.
-
-**Steps:**
-
-**Before switching (in the original chat):**
-
-**Step 1** Update the current task card: write "Current state" with what's done, set "Next actions" to remaining steps (≤7 items).
-
-**Step 2** Append one entry to `.ai/LOG.md`: what was done, which files changed, what's next.
-
-**Step 3** Generate context pack:
-
-```bash
-python3 .ai/make_context.py
-```
-
-This produces `.ai/CONTEXT_PACK.md` with Git status, diff, recent commits, CONTEXT, TASK, current task content.
-
-**In the new window / new editor:**
-
-**Step 4** Open or copy the contents of `.ai/CONTEXT_PACK.md`. If the new environment can read files directly, let AI read it; otherwise paste the content into the prompt.
-
-**Step 5** Say:
-
-```text
-Please read .ai/CONTEXT_PACK.md (or the content pasted below) first.
-Continue from the first step of Primary active task's Next actions.
-After each step, update the task card and .ai/LOG.md.
-```
-
-Then continue development following the task card's Next actions—no need to re-explain context.
-
----
-
-### Scenario 4: Large integrations / 3rd-party docs (payment example)
-
-**When to use:** Big integrations (payments, auth, SMS, logistics, risk) where external docs are long, change frequently, and details (signing, idempotency, error codes) are easy to get wrong.
-
-**Goal:** Store authoritative inputs under `.ai/resources/` so the AI defaults to reading only the latest `status=active` resources; tasks reference paths instead of pasting large text.
-
-**Step 1 (snapshot resources)** Save external/internal docs into versioned resource folders:
-
-```text
-.ai/resources/
-  _index.md
-  vendor_docs/stripe/versions/2026-02-08_snapshot/
-    00_meta.yaml
-    01_api_endpoints.md
-    02_webhooks.md
-    03_signing.md
-    04_idempotency.md
-    05_error_codes.md
-  prd/payment_integration/versions/2026-02-08_v1/
-    00_meta.yaml
-    01_overview.md
-    02_state_machine.md
-    03_acceptance.md
-```
-
-Register entries in `.ai/resources/_index.md` (set `status` and `latest`).
-
-**Step 2 (split tasks, no code yet)** In Planning mode, say:
-
-```text
-Please read .ai/CONTEXT.md, .ai/RESOURCE_GUIDE.md, .ai/resources/_index.md, and .ai/TASKING_GUIDE.md first.
-Split the following requirement into 3~10 task cards under .ai/tasks/, and update .ai/TASK.md.
-Do NOT implement code yet.
-
-[Requirement] Integrate 3rd-party payments: create payment, handle webhook (signature verification), refund, idempotency and error handling; align with our order state machine and audit requirements.
-[Authoritative inputs] Use `.ai/resources/_index.md` entries with status=active via their latest pointers. Task cards MUST reference resource shard paths.
-```
-
-**Step 3 (implement)** Set the first task as Primary active task. Execute only its Next actions and reference resources in Inputs, e.g.:
-
-- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/03_signing.md`
-- `.ai/resources/vendor_docs/stripe/versions/2026-02-08_snapshot/04_idempotency.md`
-- `.ai/resources/prd/payment_integration/versions/2026-02-08_v1/02_state_machine.md`
-
----
-
-### Scenario 5: Requirement changes / rules upgrades (versioned resource snapshots)
-
-**When to use:** Requirements change often (rules engines, audit flows, state machines) and you want to avoid implementing against outdated rules.
-
-**Goal:** Every change produces a new resource snapshot (v1 → v2) + `change_summary.md`, so the AI updates the task board first, then writes code.
-
-**Step 1 (create v2 snapshot + change summary)** Use the template in `.ai/QUICK_PROMPTS.md` ("Requirement change → create a new versioned resource snapshot"):
-
-- create `.ai/resources/prd/<doc_key>/versions/<new_version>/...`
-- generate `change_summary.md` (added/removed/changed + impact + migration hints)
-- update `.ai/resources/_index.md` (new version becomes `active` + `latest`; old version becomes `frozen`/`deprecated`)
-
-**Step 2 (update tasks first, no code yet)** Based on `change_summary.md`, ask the AI to:
-
-- update `.ai/TASK.md` priority/blocking
-- update affected task cards (Acceptance criteria + Next actions)
-- write uncertainties to Open questions (do NOT guess)
-
-> Tip: `.ai/CONTEXT_PACK.md` generated by `make_context.py` includes `.ai/resources/_index.md` and `.ai/RESOURCE_GUIDE.md`, so you won't lose the authoritative inputs index when switching chats.
-
----
-
-### Scenario 6: Versioned testing (generate cases, run, report, export)
-
-**When to use:** Your project ships in versions. Development is driven by an authoritative requirements snapshot under `.ai/resources/**/versions/<ver>/...`, and QA wants a repeatable workflow to:
-
-- generate **reviewable** test cases tied to that version
-- run smoke/tests after implementation
-- produce a **test report** (optional export to Excel/Word)
-
-**Key rule:** each test run MUST bind an **explicit resource version path** (do not rely on “latest”), otherwise results are not auditable.
-
-#### Step 0 (optional): initialize testing assets
-
-If your `.ai/` was created by an older template, ensure `.ai/tests/` exists:
-
-```bash
-repo-memory-workflow test init
-```
-
-#### Step 1: generate test cases (generate first, then review)
-
-Assume the authoritative snapshot is:
-
-`.ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md`
-
-Generate version-bound cases + a report source skeleton:
-
-```bash
-repo-memory-workflow test cases --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
-```
-
-Outputs (example):
-
-```text
-.ai/tests/releases/<release_id>/
-  meta.json
-  cases.md
-  cases.csv
-  report.md
-```
-
-Then QA reviews and fills in preconditions/steps/expected/test data in `cases.md/cases.csv`.
-
-#### Step 2: run checks/commands, record evidence, update report
-
-Configure `.ai/tests/test_config.yaml` (base URL, health checks, and your existing unit/e2e commands), then run:
-
-```bash
-repo-memory-workflow test run --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
-```
-
-Each execution is recorded:
-
-```text
-.ai/tests/runs/<timestamp>_<release_id>/
-  run.json
-  run.md
-  artifacts/
-```
-
-And `.ai/tests/releases/<release_id>/report.md` is updated with a “Latest run summary”.
-
-#### Step 3: export deliverables (Excel/Word)
-
-```bash
-repo-memory-workflow test export --resource ".ai/resources/prd/payment_integration/versions/2026-02-08_v1/01_overview.md"
-```
-
-Exports:
-
-```text
-.ai/tests/exports/<release_id>/
-  cases.xlsx
-  report.docx
-```
-
-> Keep Markdown/CSV/JSON as the source-of-truth; treat Office files as derived artifacts (ignored by default).
 
 ### Design principles
 
 - **Do not guess** — If context is missing, write to Open questions, don't invent
-- **Always log** — After each step, update the task card + append `LOG.md`, and `DECISIONS.md` when needed
+- **Always log** — After each step, update task card + append `LOG.md`, and `DECISIONS.md` when needed
 - **Small increments** — Keep changes minimal and traceable
