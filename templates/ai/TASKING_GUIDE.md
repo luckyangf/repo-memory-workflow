@@ -10,7 +10,7 @@ Turn a new requirement into a set of executable task cards under `.ai/tasks/`.
    - Context / Inputs
    - Acceptance criteria
    - Current state
-   - Next actions (<= 7 items, ordered, executable)
+   - Next action (one small executable action)
    - Open questions (if any)
 3) Prefer tasks that can be parallelized.
 4) Do NOT include large raw docs in tasks. Use `.ai/resources/` references.
@@ -27,5 +27,7 @@ Turn a new requirement into a set of executable task cards under `.ai/tasks/`.
 ## Output
 - Create/Update:
   - `.ai/TASK.md` Task board
+  - `.ai/STATE.md` current state
+  - `.ai/NEXT.md` first single next action
   - New `.ai/tasks/*.md` files
 - Do NOT modify old archived epics.

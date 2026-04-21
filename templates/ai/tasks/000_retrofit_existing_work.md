@@ -9,6 +9,8 @@ Bring a half-done repo back into the `.ai/` workflow.
 
 ## Acceptance criteria
 - `.ai/TASK.md` reflects the real current work
+- `.ai/STATE.md` summarizes current facts and blockers
+- `.ai/NEXT.md` contains exactly one executable next action
 - 3~10 task cards exist under `.ai/tasks/`
 - One task is marked as Active and has executable Next actions
 - `.ai/LOG.md` contains a short retrofit entry
@@ -17,10 +19,12 @@ Bring a half-done repo back into the `.ai/` workflow.
 - Unknown / not documented yet
 
 ## Next actions
-1. Read `.ai/START.md`, `.ai/CONTEXT.md`, `.ai/PROMPT_START.md`
+1. Read `AGENTS.md`, `.ai/START.md`, `.ai/CONTEXT.md`, `.ai/PROMPT_START.md`
 2. Scan the repo quickly (top-level folders + README)
 3. Summarize current progress in 5~10 bullets
 4. Identify the current primary goal
 5. Create 3~10 task cards under `.ai/tasks/`
 6. Update `.ai/TASK.md` (Active / Queued / Done)
-7. Append a retrofit entry to `.ai/LOG.md`
+7. Update `.ai/STATE.md`
+8. Rewrite `.ai/NEXT.md` with the next single action
+9. Append a retrofit entry to `.ai/LOG.md`

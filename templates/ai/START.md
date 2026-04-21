@@ -14,15 +14,19 @@ Supported editors/tools:
 ## 0) Golden rules (MUST)
 
 1) Always read:
-   - `.ai/CONTEXT.md`
+   - `AGENTS.md`
+   - `.ai/PROMPT_START.md`
    - `.ai/TASK.md`
-   - The Primary active task card referenced in TASK.md
+   - `.ai/STATE.md`
+   - `.ai/DECISIONS.md`
+   - `.ai/NEXT.md`
 
 2) Do NOT guess.
    - If context is missing, write it into "Open questions".
 
 3) After each meaningful step, ALWAYS update:
-   - The active task card (Current state + Next actions)
+   - `.ai/STATE.md`
+   - `.ai/NEXT.md` (rewrite with the next single action)
    - `.ai/LOG.md` (append only)
    - `.ai/DECISIONS.md` (only if architecture/schema/API contract changed)
 
@@ -36,9 +40,9 @@ Supported editors/tools:
 
 Ask AI:
 
-"Read `.ai/CONTEXT.md` and `.ai/TASKING_GUIDE.md`.
+"Read `AGENTS.md`, `.ai/CONTEXT.md` and `.ai/TASKING_GUIDE.md`.
 Split the following requirement into 3~10 task cards under `.ai/tasks/`,
-and update `.ai/TASK.md` accordingly.
+update `.ai/TASK.md`, `.ai/STATE.md`, and write the first executable action to `.ai/NEXT.md`.
 Do NOT implement code yet."
 
 Then paste the requirement.
@@ -47,13 +51,35 @@ Then paste the requirement.
 
 Ask AI:
 
-"Read `.ai/CONTEXT.md`, `.ai/TASK.md`, and the Primary active task card.
-Start executing ONLY the 'Next actions' in the Primary active task.
-After each step, update task card and append `.ai/LOG.md`."
+"Read `AGENTS.md`, `.ai/PROMPT_START.md`, `.ai/TASK.md`, `.ai/STATE.md`, `.ai/DECISIONS.md`, and `.ai/NEXT.md`.
+Execute ONLY the first actionable item in `.ai/NEXT.md`.
+Before ending, update `.ai/STATE.md`, `.ai/NEXT.md`, `.ai/LOG.md`, and decisions if needed."
 
 ---
 
-## 2) Workflow when chat context is full (Switch window safely)
+## 2) Automated relay workflow: codex exec loop
+
+After `.ai/NEXT.md` contains a concrete next action, run:
+
+```bash
+repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
+```
+
+This calls `./run_loop.sh`. Each round starts a fresh `codex exec` process.
+The loop does not preserve chat history. The next round recovers from:
+
+- `AGENTS.md`
+- `.ai/PROMPT_START.md`
+- `.ai/TASK.md`
+- `.ai/STATE.md`
+- `.ai/DECISIONS.md`
+- `.ai/NEXT.md`
+
+Each round must update checkpoint files and rewrite `.ai/NEXT.md` for the next round.
+
+---
+
+## 3) Workflow when chat context is full (Switch window safely)
 
 When the chat is almost full, do this BEFORE switching:
 
@@ -61,24 +87,26 @@ When the chat is almost full, do this BEFORE switching:
    - Current state: what is done
    - Next actions: what remains (<=7 items)
 
-2) Append one entry to `.ai/LOG.md`:
+2) Update `.ai/STATE.md` and `.ai/NEXT.md`.
+
+3) Append one entry to `.ai/LOG.md`:
    - What was done
    - Which files changed
    - What is the next step
 
-3) Generate a context pack:
-   - Run: `python3 .ai/make_context.py`
+4) Generate a context pack:
+   - Run: `repo-memory-workflow pack`
    - This will produce: `.ai/CONTEXT_PACK.md`
 
 In the NEW window/chat, ask AI:
 
 "Read `.ai/CONTEXT_PACK.md` first.
-Continue from the Primary active task 'Next actions'.
-After each step, update task card and append `.ai/LOG.md`."
+Execute ONLY the first action in `.ai/NEXT.md`.
+Before ending, update `.ai/STATE.md`, `.ai/NEXT.md`, `.ai/LOG.md`, and decisions if needed."
 
 ---
 
-## 3) Recovery workflow: requirement already half-done WITHOUT `.ai/` (Retrofit mode)
+## 4) Recovery workflow: requirement already half-done WITHOUT `.ai/` (Retrofit mode)
 
 This is REQUIRED when:
 
@@ -97,7 +125,7 @@ Then put Task 000 into `.ai/TASK.md` -> Active as the Primary active task.
 ### Step 2: Run context pack
 
 Run:
-`python3 .ai/make_context.py`
+`repo-memory-workflow pack`
 
 ### Step 3: Ask AI to recover state FIRST (do not code yet)
 
@@ -108,9 +136,11 @@ Read `.ai/CONTEXT_PACK.md`.
 Execute Task 000 ONLY:
 
 - Summarize what is already done from repo state
-- Append recovery summary into `.ai/LOG.md`
 - Split remaining work into 3~10 tasks
 - Update `.ai/TASK.md`
+- Update `.ai/STATE.md`
+- Write the first next action into `.ai/NEXT.md`
+- Append recovery summary into `.ai/LOG.md`
 Do NOT implement remaining tasks yet."
 
 ### Step 4: After Task 000 is done
@@ -120,22 +150,21 @@ Then start implementing the remaining tasks normally.
 
 ---
 
-## 4) Teammate handoff workflow (Someone continues your unfinished work)
+## 5) Teammate handoff workflow (Someone continues your unfinished work)
 
 Teammate should:
 
 1) Pull latest code
-2) Run: `python3 .ai/make_context.py`
+2) Run: `repo-memory-workflow pack`
 3) Ask AI:
 
 "Read `.ai/CONTEXT_PACK.md`.
-Continue from the Primary active task.
-Follow Next actions strictly.
-After each step, update task card and append `.ai/LOG.md`."
+Execute only `.ai/NEXT.md` first action.
+Before ending, update `.ai/STATE.md`, `.ai/NEXT.md`, `.ai/LOG.md`, and decisions if needed."
 
 ---
 
-## 5) Where to put extra documents (3rd-party docs, screenshots, rules)
+## 6) Where to put extra documents (3rd-party docs, screenshots, rules)
 
 Store external inputs under:
 
@@ -155,7 +184,7 @@ Rules:
 
 ---
 
-## 6) Testing workflow (optional, versioned)
+## 7) Testing workflow (optional, versioned)
 
 If this repo has `.ai/tests/`, you can version test assets alongside tasks/resources:
 

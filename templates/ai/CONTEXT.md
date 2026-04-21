@@ -2,13 +2,14 @@
 
 ## How to continue work
 
-1) Always read: .ai/TASK.md
-2) Then read the Active task file referenced in TASK.md (under .ai/tasks/)
-3) Follow "Next actions" strictly. If anything is unclear, write it to "Open Questions" in the Active task.
+1) Always read: `AGENTS.md`, `.ai/TASK.md`, `.ai/STATE.md`, `.ai/DECISIONS.md`, `.ai/NEXT.md`.
+2) Follow only the first actionable item in `.ai/NEXT.md`.
+3) Read the Active task file referenced in `.ai/TASK.md` only when needed for details.
 4) After each meaningful step:
-   - Update .ai/TASK.md (Current state + Next actions)
-   - Append key decisions to .ai/DECISIONS.md (only irreversible or important choices)
-   - Append progress logs to .ai/LOG.md (optional but recommended)
+   - Update `.ai/STATE.md`
+   - Rewrite `.ai/NEXT.md` with the next single action
+   - Append `.ai/LOG.md`
+   - Append `.ai/DECISIONS.md` only for important technical decisions
 
 ## Authoritative inputs (MUST read when relevant)
 
@@ -26,7 +27,8 @@ If resources exist, tasks should reference them instead of copying large text.
 
 - Do NOT guess. If context is missing, write "Open Questions" and propose 2-3 options.
 - Prefer minimal diffs and incremental commits.
-- If conversation context is low, rely on files in .ai/ as the source of truth.
+- If conversation context is low, rely on files in `.ai/` as the source of truth.
+- In automated relay mode, one fresh `codex exec` round executes one `.ai/NEXT.md` action.
 
 If the feature was already partially implemented WITHOUT this `.ai/` workflow,
 or conversation context is lost (new editor window / new teammate),
@@ -47,10 +49,11 @@ Use repo state as source-of-truth and record unknowns in "Open questions".
 
 ## Logging rule (MUST)
 
-After each meaningful step, append a log entry to `.ai/LOG.md`.
+After each meaningful step or automated relay round, append a log entry to `.ai/LOG.md`.
 Never overwrite existing logs. Always append.
 Each log entry must include:
 
 - What was done
 - Files changed
+- Verification run or skipped reason
 - Next step

@@ -5,8 +5,9 @@
 ## 拆需求（Planning）
 
 ```text
-请先读取 .ai/CONTEXT.md 和 .ai/TASKING_GUIDE.md。
+请先读取 AGENTS.md、.ai/CONTEXT.md 和 .ai/TASKING_GUIDE.md。
 把下面这个需求拆成 3~10 个任务卡，放到 .ai/tasks/ 下，并更新 .ai/TASK.md。
+同时更新 .ai/STATE.md，并把第一步可执行动作写入 .ai/NEXT.md。
 暂时不要实现代码。
 
 【需求】<在此粘贴你的需求描述>
@@ -15,25 +16,35 @@
 ## 继续执行（Implementation）
 
 ```text
-请读取 .ai/CONTEXT.md、.ai/TASK.md，以及 Primary active task（任务板里 Active 第一个）。
-只执行该任务里的 Next actions。
-每完成一步，更新任务卡和 .ai/LOG.md。
+请读取 AGENTS.md、.ai/PROMPT_START.md、.ai/TASK.md、.ai/STATE.md、.ai/DECISIONS.md 和 .ai/NEXT.md。
+只执行 .ai/NEXT.md 里的第一项。
+结束前必须更新 .ai/STATE.md、重写 .ai/NEXT.md、追加 .ai/LOG.md；如有关键技术决策，更新 .ai/DECISIONS.md。
 ```
+
+## 自动接力执行（codex exec loop）
+
+确保 `.ai/NEXT.md` 已经写好第一步动作，然后运行：
+
+```bash
+repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
+```
+
+每一轮都会启动新的 `codex exec`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
 
 ## 切窗口 / 新 chat 前（生成上下文包）
 
-先更新当前任务卡的 Current state 和 Next actions，追加一条到 `.ai/LOG.md`，然后运行：
+先更新 `.ai/STATE.md` 和 `.ai/NEXT.md`，追加一条到 `.ai/LOG.md`，然后运行：
 
 ```bash
-python3 .ai/make_context.py
+repo-memory-workflow pack
 ```
 
 在新 chat 中粘贴 `.ai/CONTEXT_PACK.md` 内容，并说：
 
 ```text
 请先读取下方粘贴的 CONTEXT_PACK 内容。
-从 Primary active task 的 Next actions 第 1 步继续执行。
-每完成一步，更新任务卡和 .ai/LOG.md。
+只执行 .ai/NEXT.md 的第一项。
+结束前更新 .ai/STATE.md、重写 .ai/NEXT.md、追加 .ai/LOG.md。
 ```
 
 ## Retrofit（补档）
@@ -43,13 +54,15 @@ python3 .ai/make_context.py
 请读取 .ai/CONTEXT_PACK.md。
 只执行 Task 000：
 1. 快速扫描项目，总结当前已完成什么（5~10 条）
-2. 把总结追加到 .ai/LOG.md
-3. 把剩余工作拆成 3~10 个任务卡，放到 .ai/tasks/
-4. 更新 .ai/TASK.md（Active / Queued / Done）
+2. 把剩余工作拆成 3~10 个任务卡，放到 .ai/tasks/
+3. 更新 .ai/TASK.md（Active / Queued / Done）
+4. 更新 .ai/STATE.md
+5. 把下一轮唯一动作写入 .ai/NEXT.md
+6. 把总结追加到 .ai/LOG.md
 暂时不要实现剩余任务。
 ```
 
-执行前需先运行 `python3 .ai/make_context.py` 生成 CONTEXT_PACK。
+执行前需先运行 `repo-memory-workflow pack` 生成 CONTEXT_PACK。
 
 ## 需求变更 → 生成新版本资源快照（PRD/规则）
 

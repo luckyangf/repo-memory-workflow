@@ -12,7 +12,12 @@ ROOT = AI_DIR.parent
 TASK_FILE = AI_DIR / "TASK.md"
 CONTEXT_FILE = AI_DIR / "CONTEXT.md"
 DECISIONS_FILE = AI_DIR / "DECISIONS.md"
+STATE_FILE = AI_DIR / "STATE.md"
+NEXT_FILE = AI_DIR / "NEXT.md"
+LOG_FILE = AI_DIR / "LOG.md"
+PROMPT_START_FILE = AI_DIR / "PROMPT_START.md"
 OUTPUT_FILE = AI_DIR / "CONTEXT_PACK.md"
+AGENTS_FILE = ROOT / "AGENTS.md"
 RESOURCE_GUIDE_FILE = AI_DIR / "RESOURCE_GUIDE.md"
 RESOURCES_INDEX_FILE = AI_DIR / "resources" / "_index.md"
 TESTS_DIR = AI_DIR / "tests"
@@ -184,8 +189,9 @@ def main():
 
     content.append("## How to use\n")
     content.append("- In a NEW editor window/chat, ask the AI to read this file first.\n")
-    content.append("- Then follow the Next actions in the Primary active task.\n")
-    content.append("- After changes, AI must update .ai/TASK.md and relevant task card.\n\n")
+    content.append("- Do not rely on previous chat history.\n")
+    content.append("- First follow `.ai/NEXT.md`; it is the per-round execution queue.\n")
+    content.append("- Before ending, AI must update `.ai/STATE.md`, `.ai/NEXT.md`, `.ai/LOG.md`, and decisions when needed.\n\n")
 
     content.append("## Repo info\n")
     content.append(f"- Branch: {git_branch}\n\n")
@@ -194,11 +200,23 @@ def main():
     content.append("## Git diff --stat\n```text\n" + (git_diff_stat or "(no diff)") + "\n```\n\n")
     content.append("## Recent commits\n```text\n" + (recent_commits or "(no commits)") + "\n```\n\n")
 
-    content.append("## .ai/CONTEXT.md\n")
-    content.append(read_text(CONTEXT_FILE, max_chars=12000) + "\n\n")
+    content.append("## AGENTS.md\n")
+    content.append(read_text(AGENTS_FILE, max_chars=20000) + "\n\n")
+
+    content.append("## .ai/PROMPT_START.md\n")
+    content.append(read_text(PROMPT_START_FILE, max_chars=20000) + "\n\n")
 
     content.append("## .ai/TASK.md\n")
     content.append(task_md + "\n\n")
+
+    content.append("## .ai/STATE.md\n")
+    content.append(read_text(STATE_FILE, max_chars=20000) + "\n\n")
+
+    content.append("## .ai/NEXT.md\n")
+    content.append(read_text(NEXT_FILE, max_chars=12000) + "\n\n")
+
+    content.append("## .ai/CONTEXT.md\n")
+    content.append(read_text(CONTEXT_FILE, max_chars=12000) + "\n\n")
 
     # Active tasks list
     content.append("## Active tasks\n")
@@ -223,6 +241,9 @@ def main():
 
     content.append("## .ai/DECISIONS.md (latest)\n")
     content.append(read_text(DECISIONS_FILE, max_chars=12000) + "\n\n")
+
+    content.append("## .ai/LOG.md (latest)\n")
+    content.append(read_text(LOG_FILE, max_chars=20000) + "\n\n")
 
     # Resources (index only)
     content.append("## .ai/RESOURCE_GUIDE.md\n")
