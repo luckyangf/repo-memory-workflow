@@ -1,11 +1,14 @@
 {
   "name": "repo-memory-workflow",
-  "version": "0.3.1",
-  "description": "Git-native, editor-agnostic AI workflow templates (.ai/) + context pack generator",
+  "version": "0.4.0",
+  "description": "Git-native AI memory workflow templates plus codex exec relay loop for long-running tasks",
   "bin": {
     "repo-memory-workflow": "bin/repo-memory-workflow.js"
   },
   "type": "commonjs",
+  "scripts": {
+    "test": "node src/test/cli_workflow_test.js"
+  },
   "license": "MIT",
   "dependencies": {
     "docx": "^9.5.1",

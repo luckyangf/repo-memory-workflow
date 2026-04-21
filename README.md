@@ -1,6 +1,6 @@
 # repo-memory-workflow
 
-**Git 即 AI 记忆。** 用 `.ai/` 目录做编辑器无关、平台无关的项目上下文，告别对话上下文爆满、接手乱麻、进度失忆。
+**Git 即 AI 记忆。** 用 `AGENTS.md` + `.ai/` 目录做编辑器无关、平台无关的项目上下文，告别对话上下文爆满、接手乱麻、进度失忆。
 
 ---
 
@@ -8,7 +8,8 @@
 
 - **跨 AI 编辑器** — 不绑定 Cursor、TRAE、ChatGPT、VSCode 任一产品。`.ai/` 里是纯 Markdown，任意能读文件的 AI 都能用。
 - **多人协同 / 同事接手** — 任务、决策、日志都写在 `.ai/` 里，随 Git 提交。同事 `pull` 后生成上下文包就能续写。
-- **对话上下文爆满** — 更新任务卡、生成 `CONTEXT_PACK.md`，切到新 chat 贴进去，就能接着干。
+- **对话上下文爆满** — 更新 checkpoint、生成 `CONTEXT_PACK.md`，切到新 chat 或新 `codex exec` 就能接着干。
+- **无人值守接力** — `run_loop.sh` 外层循环每轮启动新的 `codex exec`，只执行 `.ai/NEXT.md` 的下一步。
 - **半路进项目** — 代码写了一半但没文档？Task 000 会扫描项目、补齐日志与任务，再拆分剩余工作继续推进。
 
 **一套 `.ai/` 结构 + 一条 `init` 命令 + 编辑器规则配置**，让 AI 辅助开发可追溯、可交接、可恢复。
@@ -21,6 +22,7 @@
 |------|------|
 | **拆需求** | Planning 模式拆成 3~10 个任务卡，写入 `.ai/TASK.md` |
 | **继续开发** | 对话满了 / 切窗口 → 生成 `CONTEXT_PACK.md`，新 chat 续写 |
+| **自动接力** | `repo-memory-workflow run` 调用 `run_loop.sh`，每轮 fresh `codex exec` 只执行一个 NEXT action |
 | **半路接手** | Task 000 扫描代码、补齐日志/决策，拆出剩余任务 |
 | **版本化测试** | 绑定权威需求快照 → 生成测试用例 / 执行 / 导出 Excel·Word |
 
@@ -53,12 +55,17 @@ repo-memory-workflow init
 会生成：
 
 ```text
+AGENTS.md          # 长期稳定规则，不放临时状态
+run_loop.sh        # codex exec 自动接力调度脚本
 .ai/
   START.md          # 工作流总览
   TASK.md           # 任务看板
+  STATE.md          # 当前状态核心记忆
+  NEXT.md           # 下一轮唯一动作
   CONTEXT.md        # 项目上下文（技术栈、约定等）
   DECISIONS.md      # 重要决策
-  LOG.md            # 进度日志
+  LOG.md            # 每轮/每步进度日志
+  PROMPT_START.md   # codex exec 固定启动提示词
   TASKING_GUIDE.md  # 任务拆分指南
   RESOURCE_GUIDE.md # 资源/权威输入指南
   QUICK_PROMPTS.md  # 快捷 prompt 模板（无规则/Skill 时用）
@@ -69,6 +76,8 @@ repo-memory-workflow init
 ```
 
 > 可选：`repo-memory-workflow test init` 补齐 `.ai/tests/`（旧项目升级用）
+
+初始化是增量安全的：已有文件默认不会被覆盖，缺失文件会被补齐。
 
 ### Step 2：配置编辑器规则
 
@@ -133,13 +142,56 @@ cp -r $(npm root -g)/repo-memory-workflow/integrations/codex/repo-memory-workflo
 
 | 你说 | AI 会做什么 |
 |------|------------|
-| **「拆一下」** + 需求描述 | 读取 CONTEXT + TASKING_GUIDE，拆成 3~10 个任务卡，更新 TASK.md。不写代码。 |
-| **「继续」** | 读取 CONTEXT + TASK + 当前任务卡，执行 Next actions。每步更新日志。 |
-| **「生成上下文包」** | 运行 `python3 .ai/make_context.py`，生成 CONTEXT_PACK.md 用于新 chat 续写。 |
+| **「拆一下」** + 需求描述 | 读取 AGENTS + CONTEXT + TASKING_GUIDE，拆成 3~10 个任务卡，更新 TASK/STATE/NEXT。不写代码。 |
+| **「继续」** | 读取 checkpoint 文件，只执行 `.ai/NEXT.md` 第一项，并写回 checkpoint。 |
+| **「生成上下文包」** | 运行 `repo-memory-workflow pack`，生成 CONTEXT_PACK.md 用于新 chat 续写。 |
+| **「自动续跑」** | 运行 `repo-memory-workflow run`，每轮启动新的 `codex exec` 接力执行。 |
 | **「补档」** | 扫描项目现状，补齐日志和任务卡，拆出剩余工作。不写代码。 |
 | **「生成测试用例」** | 绑定 resource 版本，生成可审核的测试用例。 |
 | **「跑测试」** | 执行配置的 smoke/命令，写入执行记录和报告。 |
 | **「导出测试报告」** | 导出 Excel/Word 到 `.ai/tests/exports/`。 |
+
+### CLI 命令
+
+```bash
+repo-memory-workflow init
+repo-memory-workflow pack
+repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
+repo-memory-workflow test init
+```
+
+### 自动接力执行
+
+`repo-memory-workflow run` 会调用项目根目录的 `run_loop.sh`。脚本每一轮都会启动新的：
+
+```bash
+codex exec "<fresh relay prompt>"
+```
+
+每轮启动后，模型必须先读取：
+
+- `AGENTS.md`
+- `.ai/PROMPT_START.md`
+- `.ai/TASK.md`
+- `.ai/STATE.md`
+- `.ai/DECISIONS.md`
+- `.ai/NEXT.md`
+
+每轮只执行 `.ai/NEXT.md` 的第一项。结束前必须更新：
+
+- `.ai/STATE.md`
+- `.ai/NEXT.md`
+- `.ai/LOG.md`
+- `.ai/DECISIONS.md`（仅关键决策变化时）
+
+这意味着：一个大任务先拆到 `.ai/TASK.md`，但一个 `codex exec` 轮次只吃 `.ai/NEXT.md` 的一个最小动作。每轮完成后再把下一棒写回 `.ai/NEXT.md`。
+
+`run_loop.sh` 支持：
+
+- `--max-rounds <n>` 最大轮次
+- `--timeout <seconds>` 每轮超时
+- `--max-failures <n>` 连续失败上限
+- `.ai/STOP` 终止机制
 
 ---
 
@@ -181,9 +233,10 @@ cp $(npm root -g)/repo-memory-workflow/integrations/cursor/repo-memory-workflow/
 
 > **拆一下**，给博客加评论功能：用户发评论、看评论列表，管理员可审核。
 
-AI 会自动读取 `.ai/CONTEXT.md` 和 `.ai/TASKING_GUIDE.md`，然后：
+AI 会自动读取 `AGENTS.md`、`.ai/CONTEXT.md` 和 `.ai/TASKING_GUIDE.md`，然后：
 - 创建 `001_add_comment_api.md`、`002_comment_ui.md` 等任务卡
 - 更新 `.ai/TASK.md` 的 Active 列表
+- 更新 `.ai/STATE.md` 和 `.ai/NEXT.md`
 - **不写代码**
 
 ### 4. 开始开发（Implementation）
@@ -192,11 +245,11 @@ AI 会自动读取 `.ai/CONTEXT.md` 和 `.ai/TASKING_GUIDE.md`，然后：
 
 > **继续**
 
-AI 会自动读取任务板，找到第一个 Active 任务，执行 Next actions，每步更新任务卡和日志。
+AI 会自动读取 checkpoint 文件，只执行 `.ai/NEXT.md` 第一项，结束前更新 `.ai/STATE.md`、`.ai/NEXT.md` 和 `.ai/LOG.md`。
 
 ### 5. 任务完成 → 下一个
 
-一个任务做完后，AI 会把它移到 Done，下一个任务进 Active。你继续说「继续」即可。
+一个任务做完后，AI 会把它移到 Done，下一个任务进 Active，并把下一轮唯一动作写入 `.ai/NEXT.md`。你继续说「继续」，或运行 `repo-memory-workflow run` 自动接力。
 
 ### 6. 对话满了 → 切窗口
 
@@ -204,7 +257,7 @@ AI 会自动读取任务板，找到第一个 Active 任务，执行 Next action
 
 > **生成上下文包**
 
-在新 chat 里说「继续」，AI 读取 `CONTEXT_PACK.md` 自动接上进度。
+在新 chat 里说「继续」，AI 读取 `CONTEXT_PACK.md` 后从 `.ai/NEXT.md` 自动接上进度。
 
 ---
 
@@ -219,8 +272,8 @@ AI 会自动读取任务板，找到第一个 Active 任务，执行 Next action
 1. `repo-memory-workflow init`
 2. 编辑 `.ai/CONTEXT.md` 填项目背景
 3. 对 AI 说「拆一下」+ 需求描述 → AI 拆任务卡（不写代码）
-4. 对 AI 说「继续」→ AI 执行第一个任务
-5. 每完成一个任务，AI 自动切到下一个，你继续说「继续」
+4. 对 AI 说「继续」→ AI 执行 `.ai/NEXT.md` 的第一项
+5. 每轮完成后 AI 重写 `.ai/NEXT.md`，你继续说「继续」或运行 `repo-memory-workflow run`
 
 > **未配编辑器规则时**，Step 3 需要手动粘贴 prompt（见 `.ai/QUICK_PROMPTS.md`）；**配好规则后**直接说短指令即可。
 
@@ -233,7 +286,7 @@ AI 会自动读取任务板，找到第一个 Active 任务，执行 Next action
 **步骤：**
 
 1. `repo-memory-workflow init`
-2. 运行 `python3 .ai/make_context.py` 生成上下文包
+2. 运行 `repo-memory-workflow pack` 生成上下文包
 3. 对 AI 说「补档」→ AI 扫描项目、补齐日志、拆出剩余任务（不写代码）
 4. 补档完成后，对 AI 说「继续」开始开发
 
@@ -246,8 +299,8 @@ AI 会自动读取任务板，找到第一个 Active 任务，执行 Next action
 **步骤：**
 
 1. 在原 chat 里对 AI 说「生成上下文包」
-2. AI 更新任务卡和日志，运行 `python3 .ai/make_context.py` 生成 `CONTEXT_PACK.md`
-3. 在新 chat 里说「继续」→ AI 自动读取上下文包，接上进度
+2. AI 更新 `.ai/STATE.md`、`.ai/NEXT.md` 和日志，运行 `repo-memory-workflow pack` 生成 `CONTEXT_PACK.md`
+3. 在新 chat 里说「继续」→ AI 自动读取上下文包，从 `.ai/NEXT.md` 接上进度
 
 ---
 
@@ -308,7 +361,7 @@ MIT
 
 ## English
 
-**Git as AI memory.** Use a `.ai/` folder as your editor-agnostic, platform-agnostic project context. No more chat overflow, handoff chaos, or lost progress.
+**Git as AI memory.** Use `AGENTS.md` plus a `.ai/` folder as your editor-agnostic, platform-agnostic project context. No more chat overflow, handoff chaos, or lost progress.
 
 ---
 
@@ -316,7 +369,8 @@ An **open-source** workflow template for AI-assisted development:
 
 - **Cross-AI editor** — Not locked to Cursor, TRAE, ChatGPT, or VSCode. `.ai/` is plain Markdown; any AI that can read files can use it.
 - **Team handoff** — Tasks, decisions, and logs live in `.ai/`, committed with Git. Teammates pull, generate a context pack, and continue.
-- **Chat overflow** — Update task card, generate `CONTEXT_PACK.md`, paste into new chat, keep going.
+- **Chat overflow** — Update checkpoints, generate `CONTEXT_PACK.md`, paste into new chat or start a fresh `codex exec`, keep going.
+- **Automated relay** — `run_loop.sh` starts a fresh `codex exec` each round and executes only `.ai/NEXT.md`.
 - **Join mid-project** — Task 000 scans the repo, backfills logs/tasks, splits remaining work.
 
 **One `.ai/` structure + one `init` command + editor rules config** — traceable, handoff-ready, recoverable.
@@ -328,7 +382,8 @@ An **open-source** workflow template for AI-assisted development:
 | Capability | Description |
 |-----------|------------|
 | **Split requirement** | Planning mode: 3~10 task cards → `.ai/TASK.md` |
-| **Continue work** | Chat full → `CONTEXT_PACK.md` → paste in new chat |
+| **Continue work** | Chat full → `CONTEXT_PACK.md` → paste in new chat or start a fresh relay round |
+| **Automated relay** | `repo-memory-workflow run` → `run_loop.sh` → fresh `codex exec` rounds |
 | **Join mid-project** | Task 000: scan repo, backfill, split remaining tasks |
 | **Versioned testing** | Bind resource snapshot → generate cases / run / export Excel·Word |
 
@@ -358,7 +413,7 @@ In your project root:
 repo-memory-workflow init
 ```
 
-Creates `.ai/` with `START.md`, `TASK.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, `tasks/`, `tests/`.
+Creates `AGENTS.md`, `run_loop.sh`, and `.ai/` with `START.md`, `TASK.md`, `STATE.md`, `NEXT.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `PROMPT_START.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, `tasks/`, `tests/`.
 
 > Optional: `repo-memory-workflow test init` to add `.ai/tests/` for older projects.
 
@@ -418,9 +473,10 @@ Open `.ai/QUICK_PROMPTS.md` and copy the prompt for your scenario.
 
 | You say | AI does |
 |---------|---------|
-| **"拆一下"** + requirement | Read CONTEXT + TASKING_GUIDE, split into 3~10 task cards, update TASK.md. No code. |
-| **"继续"** / "continue" | Read CONTEXT + TASK + active task card, execute Next actions. Update logs after each step. |
-| **"生成上下文包"** / "context pack" | Run `python3 .ai/make_context.py`, generate CONTEXT_PACK.md for new chat. |
+| **"拆一下"** + requirement | Read AGENTS + CONTEXT + TASKING_GUIDE, split into 3~10 task cards, update TASK/STATE/NEXT. No code. |
+| **"继续"** / "continue" | Read checkpoint files, execute only `.ai/NEXT.md` first action, then update checkpoints. |
+| **"生成上下文包"** / "context pack" | Run `repo-memory-workflow pack`, generate CONTEXT_PACK.md for new chat. |
+| **"自动续跑"** / "auto relay" | Run `repo-memory-workflow run`, starting fresh `codex exec` rounds. |
 | **"补档"** / "retrofit" | Scan project, backfill logs and tasks, split remaining work. No code. |
 | **"生成测试用例"** / "test cases" | Bind resource version, generate reviewable test cases. |
 | **"跑测试"** / "run tests" | Run configured smoke/commands, write run records and report. |
@@ -459,7 +515,7 @@ In Cursor / TRAE chat, say:
 
 > **拆一下**, add comment feature: users post comments, view list, admin can moderate.
 
-AI automatically reads `.ai/CONTEXT.md` + `.ai/TASKING_GUIDE.md`, creates task cards like `001_add_comment_api.md`, `002_comment_ui.md`, updates `.ai/TASK.md`. **No code yet.**
+AI automatically reads `AGENTS.md` + `.ai/CONTEXT.md` + `.ai/TASKING_GUIDE.md`, creates task cards like `001_add_comment_api.md`, `002_comment_ui.md`, and updates `.ai/TASK.md`, `.ai/STATE.md`, and `.ai/NEXT.md`. **No code yet.**
 
 #### Develop (Implementation)
 
@@ -467,11 +523,11 @@ Say:
 
 > **继续** (or "continue")
 
-AI reads the task board, finds the first Active task, executes Next actions, updates the task card and logs after each step.
+AI reads checkpoint files, executes only the first action in `.ai/NEXT.md`, then updates `.ai/STATE.md`, `.ai/NEXT.md`, and `.ai/LOG.md`.
 
 #### Task done → next
 
-When a task is complete, AI moves it to Done, activates the next one. Just keep saying "继续".
+When a task is complete, AI moves it to Done, activates the next one, and writes the next single action to `.ai/NEXT.md`. Keep saying "继续" or run `repo-memory-workflow run`.
 
 #### Chat full → switch window
 
@@ -479,7 +535,7 @@ Say:
 
 > **生成上下文包** (or "context pack")
 
-In the new chat, say "继续" — AI reads `CONTEXT_PACK.md` and picks up where you left off.
+In the new chat, say "继续" — AI reads `CONTEXT_PACK.md` and resumes from `.ai/NEXT.md`.
 
 ---
 
@@ -490,23 +546,23 @@ In the new chat, say "继续" — AI reads `CONTEXT_PACK.md` and picks up where 
 1. `repo-memory-workflow init`
 2. Edit `.ai/CONTEXT.md` with project background
 3. Say "拆一下" + requirement → AI creates task cards (no code)
-4. Say "继续" → AI executes first task
-5. Repeat "继续" for each subsequent task
+4. Say "继续" → AI executes the first `.ai/NEXT.md` action
+5. Repeat "继续", or run `repo-memory-workflow run` for automated relay
 
 > Without editor rules, Step 3 requires pasting a long prompt from `.ai/QUICK_PROMPTS.md`. With rules configured, just say short commands.
 
 #### Scenario 2: Join mid-project (retrofit)
 
 1. `repo-memory-workflow init`
-2. Run `python3 .ai/make_context.py`
+2. Run `repo-memory-workflow pack`
 3. Say "补档" → AI scans project, backfills logs, splits remaining tasks (no code)
 4. Say "继续" to start development
 
 #### Scenario 3: Chat full, switch window/editor
 
 1. Say "生成上下文包" in current chat
-2. AI updates task card + logs, generates `CONTEXT_PACK.md`
-3. In new chat, say "继续" → AI resumes from where you left off
+2. AI updates `.ai/STATE.md`, `.ai/NEXT.md`, and logs, then generates `CONTEXT_PACK.md`
+3. In new chat, say "继续" → AI resumes from `.ai/NEXT.md`
 
 #### Scenario 4: Large integrations / 3rd-party docs
 
