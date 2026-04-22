@@ -79,7 +79,26 @@ Each round must update checkpoint files and rewrite `.ai/NEXT.md` for the next r
 
 You can let the current Codex session supervise this command and inspect `.ai/run_logs/` if it stops. Or you can run it unattended in a terminal opened at the project root; create `.ai/STOP` or interrupt the terminal to stop the loop.
 
-Before trusting a long run, do a smoke test with three tasks: create `relay_test.txt`, write `helloword`, then append `good bye` on the next line. This verifies path handling, write permissions, and checkpoint updates. On Windows, each round also writes `.ai/run_logs/round_N_run.cmd`; inspect it with `round_N_output.log` if the terminal stops at `Round N starting`.
+### Relay granularity rule (MUST)
+
+Each `.ai/NEXT.md` action must be one verifiable work slice, not one
+keystroke-level edit. A relay round has fixed cost: start Codex, read
+checkpoints, connect to the model, execute, validate, and write checkpoints.
+
+Bad:
+
+- Round 1: create `relay_test.txt`
+- Round 2: write `helloword`
+- Round 3: append `good bye`
+
+Good:
+
+- One round: create `relay_test.txt`, write both expected lines, verify exact
+  content, and update STATE/NEXT/LOG.
+
+Before trusting a long run, do that one-round smoke test. On Windows, each round
+also writes `.ai/run_logs/round_N_run.cmd`; inspect it with
+`round_N_output.log` if the terminal stops at `Round N starting`.
 
 ---
 

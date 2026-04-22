@@ -68,15 +68,38 @@ function testRelayScriptsUseRobustCodexExec() {
   assert.match(mac, /exec -/, "macOS relay should read the prompt from stdin");
 }
 
-function testCodexSkillStartsWithChineseGuide() {
+function testCodexSkillStartsWithEncodingSafeGuide() {
   const skill = read(path.join(packageRoot, "integrations", "codex", "repo-memory-workflow", "SKILL.md"));
 
-  assert.match(skill, /必须先和用户说明的流程/, "Codex skill should expose the Chinese guided flow prominently");
-  assert.match(skill, /第 0 步：确认目标项目目录/, "Codex skill should start by confirming project directory");
-  assert.match(skill, /第 1 步：确认 CLI 是否安装/, "Codex skill should confirm CLI installation");
-  assert.match(skill, /第 2 步：询问用户是否安装\/启用 https:\/\/github\.com\/obra\/superpowers/, "Codex skill should ask about Superpowers");
-  assert.match(skill, /第 5 步：先跑一个小 round 或 smoke test/, "Codex skill should require a smoke test before long loops");
+  assert.ok([...skill].every((ch) => ch.charCodeAt(0) < 128), "Codex skill should be ASCII-only so Windows PowerShell 5.1 cannot mojibake it");
+  assert.match(skill, /Step 0: confirm the target project directory/, "Codex skill should start by confirming project directory");
+  assert.match(skill, /Step 1: confirm the CLI is installed/, "Codex skill should confirm CLI installation");
+  assert.match(skill, /Step 2: ask whether to install or enable https:\/\/github\.com\/obra\/superpowers/, "Codex skill should ask about Superpowers");
+  assert.match(skill, /Step 5: run one small round or smoke test/, "Codex skill should require a smoke test before long loops");
   assert.match(skill, /Round 1 starting/, "Codex skill should trigger on common Windows stuck-loop symptoms");
+}
+
+function testRelayGranularityGuidanceIsPresent() {
+  const taskingGuide = read(path.join(packageRoot, "templates", "ai", "TASKING_GUIDE.md"));
+  const promptStart = read(path.join(packageRoot, "templates", "ai", "PROMPT_START.md"));
+  const nextTemplate = read(path.join(packageRoot, "templates", "ai", "NEXT.md"));
+  const winLoop = read(path.join(packageRoot, "templates", "root", "run_loop_for_win.ps1"));
+  const macLoop = read(path.join(packageRoot, "templates", "root", "run_loop_for_mac.sh"));
+  const readme = read(path.join(packageRoot, "README.md"));
+
+  for (const [name, content] of [
+    ["TASKING_GUIDE.md", taskingGuide],
+    ["PROMPT_START.md", promptStart],
+    ["NEXT.md", nextTemplate],
+    ["run_loop_for_win.ps1", winLoop],
+    ["run_loop_for_mac.sh", macLoop],
+  ]) {
+    assert.match(content, /verifiable work slice/, `${name} should require verifiable work-slice granularity`);
+    assert.match(content, /keystroke-level/, `${name} should reject keystroke-level relay actions`);
+  }
+
+  assert.match(readme, /可验证的小闭环/, "README should explain relay granularity in Chinese");
+  assert.match(readme, /预期 1 个 round 后/, "README smoke test should be one round, not three rounds");
 }
 
 function testPackIncludesRelayMemory() {
@@ -155,7 +178,8 @@ async function testRunInvokesRunLoopWithArgs() {
 async function main() {
   testInitCreatesRelayFilesWithoutOverwriting();
   testRelayScriptsUseRobustCodexExec();
-  testCodexSkillStartsWithChineseGuide();
+  testCodexSkillStartsWithEncodingSafeGuide();
+  testRelayGranularityGuidanceIsPresent();
   testRunSelectsPlatformLoop();
   await testRunMissingLoopExplainsProjectDirectoryWorkflow();
   testPackIncludesRelayMemory();

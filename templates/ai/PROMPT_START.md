@@ -30,6 +30,13 @@ Read these only when relevant:
 - Treat `.ai/NEXT.md` as the only per-round execution queue.
 - Do not continue to a second task phase in the same round.
 - Do not do unrelated refactors or documentation changes.
+- The first actionable item must be a verifiable work slice, not a
+  keystroke-level edit. If `.ai/NEXT.md` is too tiny (for example "create file",
+  "write first line", "append second line"), batch the tiny steps into one
+  verifiable action, record that correction in `.ai/STATE.md` and `.ai/LOG.md`,
+  then complete that one action.
+- A good relay round should include the implementation, minimal validation, and
+  checkpoint updates for one small goal.
 
 ## Required Checkpoint Before Exit
 
@@ -41,7 +48,8 @@ Before ending, update:
 - `.ai/DECISIONS.md` if a key decision changed
 
 `.ai/NEXT.md` must contain exactly the next single action for the following
-round, or a clear completion marker such as `status: complete`.
+round, or a clear completion marker such as `status: complete`. That next action
+must be sized as one verifiable work slice, not one keyboard action.
 
 ## Failure Handling
 

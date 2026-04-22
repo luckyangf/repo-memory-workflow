@@ -147,6 +147,12 @@ First read these files, in this order:
 This round must execute only the first actionable item in .ai/NEXT.md.
 If .ai/NEXT.md is unclear, do not guess. Checkpoint the blocker instead.
 
+The first actionable item must be one verifiable work slice, not a
+keystroke-level edit. Do not split tiny edits such as "create a file", "write
+first line", and "append second line" across separate relay rounds. For tiny
+smoke tests, create/write/verify in this one round and record the corrected
+granularity in STATE and LOG.
+
 Before ending this round, you must update:
 - .ai/STATE.md with current status, files changed, validation, risks, and next step
 - .ai/NEXT.md with the single next action for the following round, or "status: complete"

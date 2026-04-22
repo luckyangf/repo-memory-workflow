@@ -23,7 +23,7 @@ Every task card under `.ai/tasks/` must include:
 - Status: `todo`, `doing`, `blocked`, or `done`
 - Dependencies: task ids or `(none)`
 - Acceptance criteria: observable completion checks
-- Next action: the next small action if this task becomes active
+- Next action: the next verifiable work slice if this task becomes active
 
 ## Current Objective
 
@@ -34,6 +34,7 @@ Every task card under `.ai/tasks/` must include:
 
 - Use `.ai/STATE.md` for current facts.
 - Use `.ai/NEXT.md` for the next single automated action.
+- Size `.ai/NEXT.md` as one verifiable work slice, not one keystroke-level edit.
 - Use `.ai/LOG.md` for per-round summaries.
 - Use `.ai/DECISIONS.md` for important technical decisions.
 

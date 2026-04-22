@@ -1,51 +1,81 @@
 ---
 name: repo-memory-workflow
-description: Guides users through repo-memory-workflow setup, task splitting, checkpointed AI development, and codex exec relay loops. Use when the project has AGENTS.md and .ai/TASK.md, or when the user says 安装一下这个, 初始化 test, 做一个测试, loop 卡住, Round 1 starting, init, setup, Missing run_loop, continue task, split requirement, 继续, 拆任务, retrofit, context pack, run loop, 自动续跑, or asks where to run repo-memory-workflow commands.
+description: Guides users through repo-memory-workflow setup, task splitting, checkpointed AI development, and codex exec relay loops. Use when the project has AGENTS.md and .ai/TASK.md, or when the user says install this, initialize test, run a loop test, loop stuck, Round 1 starting, init, setup, Missing run_loop, continue task, split requirement, continue, split tasks, retrofit, context pack, run loop, auto relay, or asks where to run repo-memory-workflow commands.
 ---
 
 # Repo Memory Workflow
 
-Use this skill to help the user run repo-memory-workflow from the correct target project directory, initialize the `.ai/` workflow, split requirements into tasks, and optionally run the automated Codex relay loop.
+Use this skill to help the user run repo-memory-workflow from the correct target
+project directory, initialize the `.ai/` workflow, split requirements into
+tasks, and optionally run the automated Codex relay loop.
 
-## 必须先和用户说明的流程
+This file is intentionally ASCII-only. Windows PowerShell 5.1 can mojibake
+UTF-8 files without BOM when a nested `codex exec` reads skills, which makes
+Chinese guidance unreadable to the child Codex process.
 
-每次用户说“安装、初始化、测试 loop、自动续跑、拆需求、做一个测试、Round 1 starting、loop 卡住”时，先用简短中文明确告诉用户：
+## Required User-Facing Setup Guide
 
-0. 第 0 步：确认目标项目目录。命令必须在真正要开发的项目根目录执行，不是在工具源码目录或用户主目录执行。
-1. 第 1 步：确认 CLI 是否安装。运行 `repo-memory-workflow --help` 或 `where repo-memory-workflow` / `which repo-memory-workflow`。
-2. 第 2 步：询问用户是否安装/启用 https://github.com/obra/superpowers 做 brainstorming 需求分析。
-3. 第 3 步：如果用户已装或愿意装，优先走 brainstorming；如果用户拒绝，用 `.ai/TASKING_GUIDE.md` 做内置拆解。
-4. 第 4 步：把需求拆进 `.ai/TASK.md` / `.ai/tasks/` / `.ai/NEXT.md`。这一步只规划，不写业务代码。
-5. 第 5 步：先跑一个小 round 或 smoke test，比如创建 `relay_test.txt`、写 `helloword`、追加 `good bye`。
-6. 第 6 步：smoke test 通过后，才建议长时间运行 `repo-memory-workflow run`。
+When the user says anything like install this, initialize test, run a loop
+test, auto relay, split requirement, loop stuck, or Round 1 starting, first
+explain the workflow clearly in the user's language:
 
-不要跳过这些说明直接启动 loop。用户如果贴出 `Round 1 starting` 卡住，先读取 `.ai/run_logs/round_1_output.log` 和 `.ai/run_logs/round_1_run.cmd`，再判断是 Codex CLI 卡住还是 runner 问题。
+0. Step 0: confirm the target project directory. Commands must run in the real
+   project root, not in the tool source directory and not in the user home
+   directory.
+1. Step 1: confirm the CLI is installed. Run `repo-memory-workflow --help` or
+   `where repo-memory-workflow` / `which repo-memory-workflow`.
+2. Step 2: ask whether to install or enable https://github.com/obra/superpowers
+   for brainstorming-driven requirement analysis.
+3. Step 3: if the user has Superpowers or wants it, use brainstorming first; if
+   they decline, use `.ai/TASKING_GUIDE.md` for built-in task splitting.
+4. Step 4: write the requirement into `.ai/TASK.md`, `.ai/tasks/`, and a single
+   concrete `.ai/NEXT.md` action. Planning only; do not implement business code.
+5. Step 5: run one small round or smoke test. The smoke test must be one
+   verifiable work slice, for example: create `relay_test.txt`, write both
+   expected lines, verify exact content, and update checkpoints in one round.
+6. Step 6: only recommend a long `repo-memory-workflow run` after the smoke test
+   passes.
 
-## Conversation opening
+Do not skip this explanation and jump straight to the loop. If the user reports
+`Round 1 starting` stuck, read `.ai/run_logs/round_1_output.log` and
+`.ai/run_logs/round_1_run.cmd` first, then decide whether Codex CLI is stuck or
+the runner is broken.
 
-When setting up or starting a task, begin by explaining the workflow in this order:
+## Relay Granularity Rule
 
-1. Confirm the target project directory.
-2. Confirm `repo-memory-workflow` is installed and run `repo-memory-workflow init` in that project.
-3. Ask whether the user wants to install or enable `https://github.com/obra/superpowers` for brainstorming-driven requirement analysis.
-4. Split the requirement into `.ai/TASK.md`, `.ai/tasks/`, and one concrete `.ai/NEXT.md` action.
-5. Run a small smoke test or one relay round before a long unattended loop.
-6. Start `repo-memory-workflow run` only after `.ai/NEXT.md` is concrete.
+This is the most important rule for automated relay:
 
-Do not jump straight from `init` to `run`. The loop can only work reliably after the planning checkpoint exists.
+- `.ai/NEXT.md` must contain one verifiable work slice, not one keystroke-level
+  edit.
+- Do not split tiny steps into separate relay rounds.
+- Each relay round has fixed cost: launch Codex, read checkpoint files, connect
+  to the model, execute, validate, write checkpoints, and exit.
+- Bad NEXT sequence: create a file -> write first line -> append second line.
+- Good NEXT action: create `relay_test.txt` with both expected lines, verify
+  exact content, then update STATE/NEXT/LOG.
+- A good NEXT action usually includes implementation + minimal validation +
+  checkpoint updates for one small goal.
+- If `.ai/NEXT.md` is too tiny, correct the granularity, record the correction
+  in STATE and LOG, then execute the combined verifiable action.
 
-## Optional Superpowers setup
+For real development, task cards may contain many checklist items, but the relay
+round should not be one checklist keystroke. It should be a small complete loop,
+such as "implement the comment create API and run the minimal API test".
+
+## Optional Superpowers Setup
 
 If the user has not decided whether to use Superpowers, ask once:
 
-> Do you want me to help install or enable Superpowers for Codex so we can use brainstorming before splitting the requirement?
+> Do you want me to help install or enable Superpowers for Codex so we can use
+> brainstorming before splitting the requirement?
 
 If they decline, continue with the built-in `.ai/TASKING_GUIDE.md` workflow.
 
 If they accept, follow the official Codex install path:
 
 ```text
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
+Fetch and follow instructions from:
+https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
 ```
 
 Manual summary for Codex:
@@ -63,16 +93,27 @@ New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agents\skills"
 cmd /c mklink /J "$env:USERPROFILE\.agents\skills\superpowers" "$env:USERPROFILE\.codex\superpowers\skills"
 ```
 
-Tell the user to restart Codex after installing. If Superpowers is already installed, ask whether to use its brainstorming workflow before writing `.ai/` tasks.
+Tell the user to restart Codex after installing. If Superpowers is already
+installed, ask whether to use its brainstorming workflow before writing `.ai/`
+tasks.
 
-## Setup and directory confirmation
+## Setup And Directory Confirmation
 
-When the user asks how to start, reports `Missing run_loop.sh`, says `repo-memory-workflow run` failed, or appears to be running commands from a home/downloads/tool directory:
+When the user asks how to start, reports `Missing run_loop`, says
+`repo-memory-workflow run` failed, or appears to be running commands from a
+home/downloads/tool directory:
 
-1. Identify the **target project directory** first. This is the application/repo the user wants AI to modify, not the `repo-memory-workflow` package directory and not the user home directory.
-2. If the target directory is unclear, ask for it before running `init` or `run`.
-3. If you can inspect the filesystem, check the current directory with `pwd` and look for project markers such as `.git`, `package.json`, `pyproject.toml`, `pom.xml`, `go.mod`, source folders, or app files.
-4. Explain that `repo-memory-workflow run` looks for project-local files such as `run_loop_for_mac.sh` or `run_loop_for_win.ps1`, `AGENTS.md`, `.ai/TASK.md`, `.ai/STATE.md`, and `.ai/NEXT.md`.
+1. Identify the target project directory first. This is the application/repo the
+   user wants AI to modify, not the `repo-memory-workflow` package directory and
+   not the user home directory.
+2. If the target directory is unclear, ask for it before running `init` or
+   `run`.
+3. If you can inspect the filesystem, check the current directory and look for
+   project markers such as `.git`, `package.json`, `pyproject.toml`, `pom.xml`,
+   `go.mod`, source folders, or app files.
+4. Explain that `repo-memory-workflow run` looks for project-local files such as
+   `run_loop_for_mac.sh` or `run_loop_for_win.ps1`, `AGENTS.md`, `.ai/TASK.md`,
+   `.ai/STATE.md`, and `.ai/NEXT.md`.
 5. Once the target directory is confirmed, run or instruct:
 
 ```bash
@@ -80,14 +121,9 @@ cd <your-project-directory>
 repo-memory-workflow init
 ```
 
-On Windows PowerShell:
-
-```powershell
-cd <your-project-directory>
-repo-memory-workflow init
-```
-
-If `repo-memory-workflow` is being used from downloaded source and the command is not available, initialize the package first from the `repo-memory-workflow` source directory:
+If `repo-memory-workflow` is being used from downloaded source and the command
+is not available, initialize the package first from the `repo-memory-workflow`
+source directory:
 
 ```bash
 npm install
@@ -96,48 +132,62 @@ npm link
 
 Then return to the target project directory and run `repo-memory-workflow init`.
 
-## Required first conversation: split the requirement
+## Required First Conversation: Split The Requirement
 
-After initialization, do **not** start the relay loop immediately. First help the user split the requirement:
+After initialization, do not start the relay loop immediately. First help the
+user split the requirement:
 
 1. Ask the user for the feature/bug/work goal if it is not already clear.
 2. Read `AGENTS.md`, `.ai/CONTEXT.md`, and `.ai/TASKING_GUIDE.md`.
 3. Split the requirement into 3-10 task cards under `.ai/tasks/`.
 4. Update `.ai/TASK.md`, `.ai/STATE.md`, and `.ai/NEXT.md`.
 5. Write exactly one concrete first action into `.ai/NEXT.md`.
-6. Do not implement code during this planning step.
+6. Ensure the NEXT action is a verifiable work slice, not a tiny edit.
+7. Do not implement code during this planning step.
 
-Only after `.ai/NEXT.md` has one concrete next action should the user run the automated loop.
+Only after `.ai/NEXT.md` has one concrete next action should the user run the
+automated loop.
 
-## Running or supervising the loop
+## Running Or Supervising The Loop
 
 After task splitting, the user has two valid options:
 
-- **Let Codex supervise:** run `repo-memory-workflow run --max-rounds 100 --timeout 3600` from the target project directory inside the current Codex-controlled terminal. Watch failures, inspect `.ai/run_logs/`, and continue from `.ai/NEXT.md` if the loop stops.
-- **Let it run unattended:** tell the user to run the same command in a terminal opened at the target project directory. The loop starts fresh `codex exec` sessions and recovers state from `.ai/` files each round. To stop it, create `.ai/STOP` or interrupt the terminal.
+- Let Codex supervise: run `repo-memory-workflow run --max-rounds 100 --timeout
+  3600` from the target project directory inside the current Codex-controlled
+  terminal. Watch failures, inspect `.ai/run_logs/`, and continue from
+  `.ai/NEXT.md` if the loop stops.
+- Let it run unattended: tell the user to run the same command in a terminal
+  opened at the target project directory. The loop starts fresh `codex exec`
+  sessions and recovers state from `.ai/` files each round. To stop it, create
+  `.ai/STOP` or interrupt the terminal.
 
-Windows users can run the same command from PowerShell. The CLI uses `run_loop_for_win.ps1` on Windows and `run_loop_for_mac.sh` on macOS/Linux. Legacy `run_loop.ps1` and `run_loop.sh` are only compatibility launchers.
+Windows users can run the same command from PowerShell. The CLI uses
+`run_loop_for_win.ps1` on Windows and `run_loop_for_mac.sh` on macOS/Linux.
+Legacy `run_loop.ps1` and `run_loop.sh` are compatibility launchers.
 
-Before a long unattended run, suggest this smoke test:
+Before a long unattended run, suggest this one-round smoke test:
 
 1. Create `relay_test.txt`.
-2. Write `helloword`.
-3. Append `good bye` below it.
-
-Expected result:
+2. Write exactly:
 
 ```text
 helloword
 good bye
 ```
 
-If this does not complete within three rounds, inspect `.ai/run_logs/` before running a larger task.
+3. Verify exact file content.
+4. Update STATE/NEXT/LOG.
 
-## When already initialized
+If this does not complete in one round, inspect `.ai/run_logs/` before running a
+larger task. On Windows, inspect both `round_N_output.log` and
+`round_N_run.cmd`.
 
-When the project root contains `AGENTS.md` and `.ai/TASK.md`, follow this workflow strictly.
+## When Already Initialized
 
-## Before any coding
+When the project root contains `AGENTS.md` and `.ai/TASK.md`, follow this
+workflow strictly.
+
+## Before Any Coding
 
 1. Read `AGENTS.md`
 2. Read `.ai/PROMPT_START.md`
@@ -147,42 +197,47 @@ When the project root contains `AGENTS.md` and `.ai/TASK.md`, follow this workfl
 6. Read `.ai/NEXT.md`
 7. Read `.ai/resources/_index.md` and `.ai/RESOURCE_GUIDE.md` if relevant
 
-## Execution rules
+## Execution Rules
 
-- Execute **only** the first actionable item in `.ai/NEXT.md`
-- If unclear, write to "Open questions" in the task—do NOT guess
+- Execute only the first actionable item in `.ai/NEXT.md`.
+- If unclear, write to "Open questions" in the task; do not guess.
+- If the NEXT action is too tiny, batch it with its natural validation into one
+  verifiable work slice, record the correction, then execute it.
 - After each meaningful step, update:
   - `.ai/STATE.md`: current facts, blockers, files changed, validation
   - `.ai/NEXT.md`: the next single action for the following round
-  - `.ai/LOG.md`: append (never overwrite)
+  - `.ai/LOG.md`: append; never overwrite
   - `.ai/DECISIONS.md`: only when architecture/schema/API changes
-- Keep diffs minimal and incremental
+- Keep diffs minimal and incremental.
 
-## Resources rule (MUST)
+## Resources Rule
 
-- Default: only use `.ai/resources/_index.md` entries with **status=active** via their **latest** pointers
-- Read `frozen/deprecated` only for bugfix/audit/migration (and state the reason)
+- Default: only use `.ai/resources/_index.md` entries with `status=active` via
+  their `latest` pointers.
+- Read `frozen` or `deprecated` only for bugfix/audit/migration, and state the
+  reason.
 
-## User intents → Actions
+## User Intents To Actions
 
 | User says | Do this |
 |-----------|---------|
-| Setup / init / Missing run_loop / 在哪里执行 | Confirm the target project directory first, then run `repo-memory-workflow init` there. Explain that commands must run from the project root. |
-| Split requirement / 拆需求 / 规划 | Read `AGENTS.md` + `.ai/CONTEXT.md` + `.ai/TASKING_GUIDE.md`, split into 3~10 task cards under `.ai/tasks/`, update `.ai/TASK.md`, `.ai/STATE.md`, and `.ai/NEXT.md`. No code yet. |
-| Continue / 继续 / next | Read checkpoint files, execute only `.ai/NEXT.md` first action, then update checkpoint files |
-| Auto relay / 自动续跑 | Use `repo-memory-workflow run`; each round starts fresh `codex exec` and executes one NEXT action. The CLI chooses `run_loop_for_win.ps1` on Windows and `run_loop_for_mac.sh` elsewhere. |
-| Context full / 切窗口 / new chat | Remind: update STATE/NEXT, append LOG, run `repo-memory-workflow pack`, then continue from `.ai/NEXT.md` |
-| Retrofit / 补档 | Set Task 000 as Active, run `make_context.py`, ask user to paste retrofit prompt (see START.md) |
-| Test cases / 测试用例 | Read `.ai/tests/TESTING_GUIDE.md` (if present) + bound resource version path, then generate/update `.ai/tests/releases/<release_id>/cases.md` + `cases.csv` for review. No code changes. |
-| Run tests / 跑测试 | Read `.ai/tests/test_config.yaml`, execute smoke/commands, write `.ai/tests/runs/<timestamp>_<release_id>/run.md` + `run.json`, update release `report.md` latest summary. |
-| Export report / 导出报告 | Export `.ai/tests/releases/<release_id>/cases.csv` → xlsx and `report.md` → docx (write to `.ai/tests/exports/<release_id>/`). |
+| Setup / init / Missing run_loop / where to run | Confirm the target project directory first, then run `repo-memory-workflow init` there. Explain that commands must run from the project root. |
+| Split requirement / plan | Read `AGENTS.md` + `.ai/CONTEXT.md` + `.ai/TASKING_GUIDE.md`, split into 3-10 task cards under `.ai/tasks/`, update `.ai/TASK.md`, `.ai/STATE.md`, and `.ai/NEXT.md`. No code yet. |
+| Continue / next | Read checkpoint files, execute only `.ai/NEXT.md` first action, then update checkpoint files. |
+| Auto relay | Use `repo-memory-workflow run`; each round starts fresh `codex exec` and executes one NEXT action. The CLI chooses `run_loop_for_win.ps1` on Windows and `run_loop_for_mac.sh` elsewhere. |
+| Context full / new chat | Remind: update STATE/NEXT, append LOG, run `repo-memory-workflow pack`, then continue from `.ai/NEXT.md`. |
+| Retrofit | Set Task 000 as Active, run `make_context.py`, ask user to paste retrofit prompt from START.md. |
+| Test cases | Read `.ai/tests/TESTING_GUIDE.md` if present plus the bound resource version path, then generate or update `.ai/tests/releases/<release_id>/cases.md` and `cases.csv` for review. No code changes. |
+| Run tests | Read `.ai/tests/test_config.yaml`, execute smoke/commands, write `.ai/tests/runs/<timestamp>_<release_id>/run.md` and `run.json`, update release `report.md` latest summary. |
+| Export report | Export `.ai/tests/releases/<release_id>/cases.csv` to xlsx and `report.md` to docx under `.ai/tests/exports/<release_id>/`. |
 
-## Quick prompts (user can say these shortly)
+## Quick Prompts
 
-- **"拆一下"** → Planning mode: split requirement into tasks, no code
-- **"继续"** → Implementation mode: execute `.ai/NEXT.md` first action
-- **"生成上下文包"** → Run `repo-memory-workflow pack`
-- **"自动续跑"** → Run `repo-memory-workflow run`
-- **"生成测试用例"** → Bind a resource version path, generate cases under `.ai/tests/releases/`
-- **"跑测试"** → Execute configured smoke/commands and write a run record
-- **"导出测试报告"** → Export xlsx/docx to `.ai/tests/exports/`
+- "split this" -> Planning mode: split requirement into tasks, no code.
+- "continue" -> Implementation mode: execute `.ai/NEXT.md` first action.
+- "context pack" -> Run `repo-memory-workflow pack`.
+- "auto relay" -> Run `repo-memory-workflow run`.
+- "generate test cases" -> Bind a resource version path, generate cases under
+  `.ai/tests/releases/`.
+- "run tests" -> Execute configured smoke/commands and write a run record.
+- "export test report" -> Export xlsx/docx to `.ai/tests/exports/`.

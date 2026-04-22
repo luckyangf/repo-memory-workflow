@@ -10,9 +10,10 @@ Bring a half-done repo back into the `.ai/` workflow.
 ## Acceptance criteria
 - `.ai/TASK.md` reflects the real current work
 - `.ai/STATE.md` summarizes current facts and blockers
-- `.ai/NEXT.md` contains exactly one executable next action
+- `.ai/NEXT.md` contains exactly one executable next action sized as a
+  verifiable work slice
 - 3~10 task cards exist under `.ai/tasks/`
-- One task is marked as Active and has executable Next actions
+- One task is marked as Active and has verifiable Next actions
 - `.ai/LOG.md` contains a short retrofit entry
 
 ## Current state

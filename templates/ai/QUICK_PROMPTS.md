@@ -8,6 +8,7 @@
 请先读取 AGENTS.md、.ai/CONTEXT.md 和 .ai/TASKING_GUIDE.md。
 把下面这个需求拆成 3~10 个任务卡，放到 .ai/tasks/ 下，并更新 .ai/TASK.md。
 同时更新 .ai/STATE.md，并把第一步可执行动作写入 .ai/NEXT.md。
+.ai/NEXT.md 必须是一个可验证的小闭环，不要拆成“创建文件、写第一行、追加第二行”这种键盘级微动作。
 暂时不要实现代码。
 
 【需求】<在此粘贴你的需求描述>
@@ -30,6 +31,8 @@ repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
 ```
 
 Windows PowerShell 也使用同一条命令；CLI 会自动调用 `run_loop_for_win.ps1`，macOS/Linux 会调用 `run_loop_for_mac.sh`。每一轮都会启动新的 `codex exec --cd <project> --skip-git-repo-check --full-auto -`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
+
+注意：`.ai/NEXT.md` 的第一项应当是“实现 + 最小验证 + checkpoint 更新”的小闭环。不要把很小的文件编辑拆成多个 round，否则每个微动作都会重新启动一次 Codex。
 
 如果要让 AI 监控 loop：
 

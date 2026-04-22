@@ -1,7 +1,8 @@
 # NEXT
 
-This file controls the next automated relay round. Keep it narrow. The next
-`codex exec` round must execute only the first actionable item below.
+This file controls the next automated relay round. Keep it narrow, but not
+keystroke-level. The next `codex exec` round must execute only the first
+actionable item below.
 
 status: ready
 
@@ -13,6 +14,9 @@ status: ready
 
 - Do not implement unrelated code.
 - Do not execute more than this one action.
+- This action must be one verifiable work slice, not one tiny edit. Include
+  implementation + minimal validation when they belong together.
+- For smoke tests, create/write/verify the target artifact in one round.
 - End by rewriting this file with the next single action, or `status: complete`.
 
 ## Required Checkpoint
