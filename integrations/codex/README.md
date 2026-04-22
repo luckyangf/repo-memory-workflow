@@ -25,4 +25,4 @@ cp -r <path-to-repo-memory-workflow>/integrations/codex/repo-memory-workflow "${
 repo-memory-workflow run --max-rounds 100 --timeout 3600
 ```
 
-Windows PowerShell 也使用同一条 `repo-memory-workflow run` 命令；CLI 会自动调用项目里的 `run_loop.ps1`。
+Windows PowerShell 也使用同一条 `repo-memory-workflow run` 命令；CLI 会自动调用项目里的 `run_loop_for_win.ps1`。macOS/Linux 会调用 `run_loop_for_mac.sh`。

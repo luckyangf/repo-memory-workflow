@@ -29,18 +29,39 @@ function testInitCreatesRelayFilesWithoutOverwriting() {
   const result = init(root, packageRoot);
 
   assert.ok(exists(path.join(root, "AGENTS.md")), "AGENTS.md should be created");
+  assert.ok(exists(path.join(root, "run_loop_for_mac.sh")), "run_loop_for_mac.sh should be created");
+  assert.ok(exists(path.join(root, "run_loop_for_win.ps1")), "run_loop_for_win.ps1 should be created");
   assert.ok(exists(path.join(root, "run_loop.sh")), "run_loop.sh should be created");
   assert.ok(exists(path.join(root, "run_loop.ps1")), "run_loop.ps1 should be created");
   assert.ok(exists(path.join(root, ".ai", "TASK.md")), ".ai/TASK.md should be created");
   assert.ok(exists(path.join(root, ".ai", "STATE.md")), ".ai/STATE.md should be created");
   assert.ok(exists(path.join(root, ".ai", "NEXT.md")), ".ai/NEXT.md should be created");
   assert.ok(exists(path.join(root, ".ai", "PROMPT_START.md")), ".ai/PROMPT_START.md should be created");
-  assert.match(read(path.join(root, "run_loop.sh")), /codex exec/, "run_loop.sh should call codex exec");
-  assert.match(read(path.join(root, "run_loop.ps1")), /codex exec/, "run_loop.ps1 should call codex exec");
+  assert.match(read(path.join(root, "run_loop_for_mac.sh")), /codex exec/, "run_loop_for_mac.sh should call codex exec");
+  assert.match(read(path.join(root, "run_loop_for_win.ps1")), /codex exec/, "run_loop_for_win.ps1 should call codex exec");
   assert.match(read(path.join(root, ".gitignore")), /\.ai\/CONTEXT_PACK\.md/, ".gitignore should ignore context pack");
   assert.strictEqual(read(path.join(root, ".ai", "LOG.md")), "# LOG\n\ncustom log\n", "init must not overwrite existing files");
   assert.ok(result.created.length > 0, "init should report created files");
   assert.ok(result.skipped.some((p) => p.endsWith(".ai/LOG.md")), "init should report skipped existing files");
+}
+
+function testRelayScriptsUseRobustCodexExec() {
+  const root = tmpProject();
+  init(root, packageRoot);
+
+  const win = read(path.join(root, "run_loop_for_win.ps1"));
+  assert.match(win, /Set-Location -LiteralPath \$ProjectRoot/, "Windows job should run from project root");
+  assert.match(win, /--cd/, "Windows relay should pass --cd to codex exec");
+  assert.match(win, /--skip-git-repo-check/, "Windows relay should support non-Git smoke tests");
+  assert.match(win, /--full-auto/, "Windows relay should request workspace-write automation");
+  assert.match(win, /exec @CodexArgs -/, "Windows relay should read the prompt from stdin");
+  assert.doesNotMatch(win, /exec \$RoundPrompt/, "Windows relay must not pass multiline prompt as a raw argument");
+
+  const mac = read(path.join(root, "run_loop_for_mac.sh"));
+  assert.match(mac, /--cd "\$PROJECT_ROOT"/, "macOS relay should pass --cd to codex exec");
+  assert.match(mac, /--skip-git-repo-check/, "macOS relay should support non-Git smoke tests");
+  assert.match(mac, /--full-auto/, "macOS relay should request workspace-write automation");
+  assert.match(mac, /exec -/, "macOS relay should read the prompt from stdin");
 }
 
 function testPackIncludesRelayMemory() {
@@ -66,7 +87,7 @@ function testRunSelectsPlatformLoop() {
   try {
     const windowsLoop = selectLoopCommand(root, "win32");
     assert.match(windowsLoop.command, /powershell(?:\.exe)?$/, "Windows should run PowerShell");
-    assert.ok(windowsLoop.args.includes(path.join(root, "run_loop.ps1")), "Windows should use run_loop.ps1");
+    assert.ok(windowsLoop.args.includes(path.join(root, "run_loop_for_win.ps1")), "Windows should use run_loop_for_win.ps1");
   } finally {
     if (oldPowershellBin === undefined) {
       delete process.env.RMW_POWERSHELL_BIN;
@@ -76,8 +97,8 @@ function testRunSelectsPlatformLoop() {
   }
 
   const unixLoop = selectLoopCommand(root, "darwin");
-  assert.strictEqual(unixLoop.command, path.join(root, "run_loop.sh"), "Unix should use run_loop.sh");
-  assert.deepStrictEqual(unixLoop.args, [], "Unix should invoke run_loop.sh directly");
+  assert.strictEqual(unixLoop.command, path.join(root, "run_loop_for_mac.sh"), "Unix should use run_loop_for_mac.sh");
+  assert.deepStrictEqual(unixLoop.args, [], "Unix should invoke run_loop_for_mac.sh directly");
 }
 
 async function testRunMissingLoopExplainsProjectDirectoryWorkflow() {
@@ -102,7 +123,7 @@ async function testRunInvokesRunLoopWithArgs() {
   const root = tmpProject();
   init(root, packageRoot);
 
-  const loopPath = path.join(root, "run_loop.sh");
+  const loopPath = path.join(root, "run_loop_for_mac.sh");
   fs.writeFileSync(
     loopPath,
     "#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" > .ai/run_args.txt\n",
@@ -112,12 +133,13 @@ async function testRunInvokesRunLoopWithArgs() {
 
   const result = await run(root, ["--max-rounds", "2", "--timeout", "9"]);
 
-  assert.strictEqual(result.exitCode, 0, "run_loop.sh should exit successfully");
+  assert.strictEqual(result.exitCode, 0, "run_loop_for_mac.sh should exit successfully");
   assert.strictEqual(read(path.join(root, ".ai", "run_args.txt")), "--max-rounds\n2\n--timeout\n9\n");
 }
 
 async function main() {
   testInitCreatesRelayFilesWithoutOverwriting();
+  testRelayScriptsUseRobustCodexExec();
   testRunSelectsPlatformLoop();
   await testRunMissingLoopExplainsProjectDirectoryWorkflow();
   testPackIncludesRelayMemory();

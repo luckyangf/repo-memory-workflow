@@ -29,7 +29,7 @@
 repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
 ```
 
-Windows PowerShell 也使用同一条命令；CLI 会自动调用 `run_loop.ps1`。每一轮都会启动新的 `codex exec`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
+Windows PowerShell 也使用同一条命令；CLI 会自动调用 `run_loop_for_win.ps1`，macOS/Linux 会调用 `run_loop_for_mac.sh`。每一轮都会启动新的 `codex exec --cd <project> --skip-git-repo-check --full-auto -`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
 
 如果要让 AI 监控 loop：
 

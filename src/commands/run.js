@@ -21,19 +21,23 @@ function missingLoopMessage(projectRoot) {
 }
 
 function selectLoopCommand(projectRoot, platform = process.platform) {
-  const shellLoop = path.join(projectRoot, "run_loop.sh");
-  const psLoop = path.join(projectRoot, "run_loop.ps1");
+  const shellLoop = path.join(projectRoot, "run_loop_for_mac.sh");
+  const legacyShellLoop = path.join(projectRoot, "run_loop.sh");
+  const psLoop = path.join(projectRoot, "run_loop_for_win.ps1");
+  const legacyPsLoop = path.join(projectRoot, "run_loop.ps1");
 
   if (platform === "win32") {
-    if (!exists(psLoop)) throw new Error(missingLoopMessage(projectRoot));
+    const selectedPsLoop = exists(psLoop) ? psLoop : legacyPsLoop;
+    if (!exists(selectedPsLoop)) throw new Error(missingLoopMessage(projectRoot));
     return {
       command: process.env.RMW_POWERSHELL_BIN || "powershell.exe",
-      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", psLoop],
+      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", selectedPsLoop],
     };
   }
 
-  if (!exists(shellLoop)) throw new Error(missingLoopMessage(projectRoot));
-  return { command: shellLoop, args: [] };
+  const selectedShellLoop = exists(shellLoop) ? shellLoop : legacyShellLoop;
+  if (!exists(selectedShellLoop)) throw new Error(missingLoopMessage(projectRoot));
+  return { command: selectedShellLoop, args: [] };
 }
 
 function run(projectRoot, args) {

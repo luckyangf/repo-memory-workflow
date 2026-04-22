@@ -45,8 +45,8 @@ function init(projectRoot, packageRoot) {
   copyMissing(templatesAi, aiDir, result);
   copyMissing(templatesRoot, projectRoot, result);
 
-  const runLoop = path.join(projectRoot, "run_loop.sh");
-  chmodExecutableIfExists(runLoop);
+  chmodExecutableIfExists(path.join(projectRoot, "run_loop_for_mac.sh"));
+  chmodExecutableIfExists(path.join(projectRoot, "run_loop.sh"));
 
   if (appendGitignore(projectRoot)) result.updated.push(path.join(projectRoot, ".gitignore"));
 

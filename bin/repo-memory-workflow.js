@@ -14,7 +14,7 @@ repo-memory-workflow
 Usage:
   repo-memory-workflow init   # create or repair .ai/ relay workflow files
   repo-memory-workflow pack   # generate .ai/CONTEXT_PACK.md
-  repo-memory-workflow run    # run run_loop.ps1 on Windows or ./run_loop.sh elsewhere
+  repo-memory-workflow run    # run run_loop_for_win.ps1 on Windows or run_loop_for_mac.sh elsewhere
   repo-memory-workflow test   # testing workflow (init/cases/run/export)
 
 Run commands from the target project root. Typical flow:

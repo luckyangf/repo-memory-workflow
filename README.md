@@ -9,7 +9,7 @@
 - **跨 AI 编辑器** — 不绑定 Cursor、TRAE、ChatGPT、VSCode 任一产品。`.ai/` 里是纯 Markdown，任意能读文件的 AI 都能用。
 - **多人协同 / 同事接手** — 任务、决策、日志都写在 `.ai/` 里，随 Git 提交。同事 `pull` 后生成上下文包就能续写。
 - **对话上下文爆满** — 更新 checkpoint、生成 `CONTEXT_PACK.md`，切到新 chat 或新 `codex exec` 就能接着干。
-- **无人值守接力** — `run_loop.sh` 外层循环每轮启动新的 `codex exec`，只执行 `.ai/NEXT.md` 的下一步。
+- **无人值守接力** — 平台专用 relay 脚本每轮启动新的 `codex exec`，只执行 `.ai/NEXT.md` 的下一步。
 - **半路进项目** — 代码写了一半但没文档？Task 000 会扫描项目、补齐日志与任务，再拆分剩余工作继续推进。
 
 **一套 `.ai/` 结构 + 一条 `init` 命令 + 编辑器规则配置**，让 AI 辅助开发可追溯、可交接、可恢复。
@@ -22,7 +22,7 @@
 |------|------|
 | **拆需求** | Planning 模式拆成 3~10 个任务卡，写入 `.ai/TASK.md` |
 | **继续开发** | 对话满了 / 切窗口 → 生成 `CONTEXT_PACK.md`，新 chat 续写 |
-| **自动接力** | `repo-memory-workflow run` 调用 `run_loop.sh`，每轮 fresh `codex exec` 只执行一个 NEXT action |
+| **自动接力** | `repo-memory-workflow run` 调用平台专用 relay 脚本，每轮 fresh `codex exec` 只执行一个 NEXT action |
 | **半路接手** | Task 000 扫描代码、补齐日志/决策，拆出剩余任务 |
 | **版本化测试** | 绑定权威需求快照 → 生成测试用例 / 执行 / 导出 Excel·Word |
 
@@ -72,8 +72,10 @@ repo-memory-workflow init
 
 ```text
 AGENTS.md          # 长期稳定规则，不放临时状态
-run_loop.sh        # codex exec 自动接力调度脚本
-run_loop.ps1       # Windows PowerShell 自动接力调度脚本
+run_loop_for_mac.sh # macOS/Linux codex exec 自动接力调度脚本
+run_loop_for_win.ps1 # Windows PowerShell 自动接力调度脚本
+run_loop.sh        # 兼容入口，转发到 run_loop_for_mac.sh
+run_loop.ps1       # 兼容入口，转发到 run_loop_for_win.ps1
 .ai/
   START.md          # 工作流总览
   TASK.md           # 任务看板
@@ -179,10 +181,10 @@ repo-memory-workflow test init
 
 ### 自动接力执行
 
-`repo-memory-workflow run` 会在 macOS/Linux 调用项目根目录的 `run_loop.sh`，在 Windows PowerShell 调用 `run_loop.ps1`。脚本每一轮都会启动新的：
+`repo-memory-workflow run` 会在 macOS/Linux 调用项目根目录的 `run_loop_for_mac.sh`，在 Windows PowerShell 调用 `run_loop_for_win.ps1`。旧的 `run_loop.sh` / `run_loop.ps1` 保留为兼容入口。脚本每一轮都会启动新的：
 
 ```bash
-codex exec "<fresh relay prompt>"
+codex exec --cd <project> --skip-git-repo-check --full-auto -
 ```
 
 每轮启动后，模型必须先读取：
@@ -217,6 +219,23 @@ repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
 ```
 
 你可以让 Codex 在当前会话里启动并监控这条命令；也可以自己在目标项目目录打开终端执行，让它无人值守运行。无人值守前必须先完成“拆需求”，确保 `.ai/NEXT.md` 里已经有明确的第一步动作。
+
+### 最小 smoke test
+
+新安装或升级后，建议先跑一个最小三步测试，不要一上来交给复杂需求：
+
+1. 创建 `relay_test.txt`
+2. 写入 `helloword`
+3. 在下一行追加 `good bye`
+
+预期最多 3 个 round 后，文件内容为：
+
+```text
+helloword
+good bye
+```
+
+如果卡在 `Round N starting` 或没有推进 `.ai/NEXT.md`，先查看 `.ai/run_logs/round_N_output.log`。Windows 下重点检查是否使用了 `run_loop_for_win.ps1`，以及日志里是否出现 `--cd`、`--skip-git-repo-check`、`--full-auto`。
 
 ---
 
@@ -401,7 +420,7 @@ An **open-source** workflow template for AI-assisted development:
 - **Cross-AI editor** — Not locked to Cursor, TRAE, ChatGPT, or VSCode. `.ai/` is plain Markdown; any AI that can read files can use it.
 - **Team handoff** — Tasks, decisions, and logs live in `.ai/`, committed with Git. Teammates pull, generate a context pack, and continue.
 - **Chat overflow** — Update checkpoints, generate `CONTEXT_PACK.md`, paste into new chat or start a fresh `codex exec`, keep going.
-- **Automated relay** — `run_loop.sh` starts a fresh `codex exec` each round and executes only `.ai/NEXT.md`.
+- **Automated relay** — platform-specific relay scripts start a fresh `codex exec` each round and execute only `.ai/NEXT.md`.
 - **Join mid-project** — Task 000 scans the repo, backfills logs/tasks, splits remaining work.
 
 **One `.ai/` structure + one `init` command + editor rules config** — traceable, handoff-ready, recoverable.
@@ -414,7 +433,7 @@ An **open-source** workflow template for AI-assisted development:
 |-----------|------------|
 | **Split requirement** | Planning mode: 3~10 task cards → `.ai/TASK.md` |
 | **Continue work** | Chat full → `CONTEXT_PACK.md` → paste in new chat or start a fresh relay round |
-| **Automated relay** | `repo-memory-workflow run` → `run_loop.sh` → fresh `codex exec` rounds |
+| **Automated relay** | `repo-memory-workflow run` → platform-specific relay script → fresh `codex exec` rounds |
 | **Join mid-project** | Task 000: scan repo, backfill, split remaining tasks |
 | **Versioned testing** | Bind resource snapshot → generate cases / run / export Excel·Word |
 
@@ -444,7 +463,7 @@ In your project root:
 repo-memory-workflow init
 ```
 
-Creates `AGENTS.md`, `run_loop.sh`, and `.ai/` with `START.md`, `TASK.md`, `STATE.md`, `NEXT.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `PROMPT_START.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, `tasks/`, `tests/`.
+Creates `AGENTS.md`, `run_loop_for_mac.sh`, `run_loop_for_win.ps1`, compatibility launchers, and `.ai/` with `START.md`, `TASK.md`, `STATE.md`, `NEXT.md`, `CONTEXT.md`, `DECISIONS.md`, `LOG.md`, `PROMPT_START.md`, `TASKING_GUIDE.md`, `RESOURCE_GUIDE.md`, `make_context.py`, `resources/`, `tasks/`, `tests/`.
 
 > Optional: `repo-memory-workflow test init` to add `.ai/tests/` for older projects.
 

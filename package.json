@@ -1,6 +1,6 @@
 {
   "name": "repo-memory-workflow",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Git-native AI memory workflow templates plus codex exec relay loop for long-running tasks",
   "bin": {
     "repo-memory-workflow": "bin/repo-memory-workflow.js"
