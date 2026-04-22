@@ -163,39 +163,36 @@ Do not do unrelated refactors. Do not execute multiple task phases in this round
 function Invoke-CodexRound {
   param(
     [string]$PromptFile,
+    [string]$RunnerFile,
     [string]$OutputFile,
     [int]$TimeoutSeconds
   )
 
-  $codexArgs = @("--cd", $ProjectRoot, "--skip-git-repo-check", "--full-auto")
-  $job = Start-Job -ScriptBlock {
-    param($Bin, $RoundPromptFile, $RoundOutput, $Root, $CodexArgs)
-    try {
-      Set-Location -LiteralPath $Root
-      $promptText = Get-Content -LiteralPath $RoundPromptFile -Raw
-      $promptText | & $Bin exec @CodexArgs - *> $RoundOutput
-      if ($null -eq $LASTEXITCODE) { return 1 }
-      return $LASTEXITCODE
-    } catch {
-      Add-Content -LiteralPath $RoundOutput -Value "[run_loop] PowerShell job failed: $($_.Exception.Message)"
-      return 1
-    }
-  } -ArgumentList $CodexBin, $PromptFile, $OutputFile, $ProjectRoot, $codexArgs
+  $cmd = @"
+@echo off
+cd /d "$ProjectRoot"
+type "$PromptFile" | "$CodexBin" exec --cd "$ProjectRoot" --skip-git-repo-check --full-auto - > "$OutputFile" 2>&1
+exit /b %ERRORLEVEL%
+"@
+  Set-Content -LiteralPath $RunnerFile -Value $cmd -Encoding ASCII
 
-  $finished = Wait-Job $job -Timeout $TimeoutSeconds
-  if (-not $finished) {
-    Stop-Job $job | Out-Null
-    Remove-Job $job -Force | Out-Null
+  $process = Start-Process -FilePath "cmd.exe" -ArgumentList @("/d", "/s", "/c", "call `"$RunnerFile`"") -WorkingDirectory $ProjectRoot -WindowStyle Hidden -PassThru
+  $completed = $process.WaitForExit($TimeoutSeconds * 1000)
+
+  if (-not $completed) {
     Add-Content -LiteralPath $OutputFile -Value "[run_loop] Round timed out after $TimeoutSeconds seconds"
+    try {
+      & taskkill /PID $process.Id /T /F | Out-Null
+    } catch {
+      Add-Content -LiteralPath $OutputFile -Value "[run_loop] taskkill failed: $($_.Exception.Message)"
+    }
     return 124
   }
 
-  $result = @(Receive-Job $job)
-  Remove-Job $job | Out-Null
-  if ($result.Count -gt 0) {
-    return [int]$result[-1]
+  if ($null -eq $process.ExitCode) {
+    return 1
   }
-  return 0
+  return [int]$process.ExitCode
 }
 
 Require-File "AGENTS.md"
@@ -233,6 +230,7 @@ while ($round -le $MaxRounds) {
   }
 
   $promptFile = Join-Path $LogDirPath "round_${round}_prompt.md"
+  $runnerFile = Join-Path $LogDirPath "round_${round}_run.cmd"
   $outputFile = Join-Path $LogDirPath "round_${round}_output.log"
   $prompt = Build-Prompt $round
   Set-Content -LiteralPath $promptFile -Value $prompt -Encoding UTF8
@@ -242,8 +240,8 @@ while ($round -le $MaxRounds) {
   $logBefore = Fingerprint-OrZero ".ai/LOG.md"
 
   Write-Host "[run_loop] Round $round starting"
-  Write-Host "[run_loop] Round $round prompt=$promptFile output=$outputFile"
-  $code = Invoke-CodexRound -PromptFile $promptFile -OutputFile $outputFile -TimeoutSeconds $RoundTimeout
+  Write-Host "[run_loop] Round $round prompt=$promptFile runner=$runnerFile output=$outputFile"
+  $code = Invoke-CodexRound -PromptFile $promptFile -RunnerFile $runnerFile -OutputFile $outputFile -TimeoutSeconds $RoundTimeout
 
   $stateAfter = Fingerprint-OrZero ".ai/STATE.md"
   $nextAfter = Fingerprint-OrZero ".ai/NEXT.md"

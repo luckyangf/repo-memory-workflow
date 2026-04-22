@@ -35,7 +35,7 @@ Windows PowerShell 也使用同一条命令；CLI 会自动调用 `run_loop_for_
 
 ```text
 请在当前项目目录启动 repo-memory-workflow run --max-rounds 100 --timeout 3600，并观察输出。
-如果 loop 失败或停止，请读取 .ai/run_logs/、.ai/STATE.md 和 .ai/NEXT.md，总结原因并给出下一步。
+如果 loop 失败或停止，请读取 .ai/run_logs/、.ai/STATE.md 和 .ai/NEXT.md，总结原因并给出下一步。Windows 下还要读取 .ai/run_logs/round_N_run.cmd，确认实际执行的 codex exec 命令。
 ```
 
 ## 切窗口 / 新 chat 前（生成上下文包）

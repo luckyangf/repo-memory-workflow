@@ -1,11 +1,25 @@
 ---
 name: repo-memory-workflow
-description: Guides users through repo-memory-workflow setup, task splitting, checkpointed AI development, and codex exec relay loops. Use when the project has AGENTS.md and .ai/TASK.md, or when the user says init, setup, Missing run_loop, continue task, split requirement, 继续, 拆任务, retrofit, context pack, run loop, 自动续跑, or asks where to run repo-memory-workflow commands.
+description: Guides users through repo-memory-workflow setup, task splitting, checkpointed AI development, and codex exec relay loops. Use when the project has AGENTS.md and .ai/TASK.md, or when the user says 安装一下这个, 初始化 test, 做一个测试, loop 卡住, Round 1 starting, init, setup, Missing run_loop, continue task, split requirement, 继续, 拆任务, retrofit, context pack, run loop, 自动续跑, or asks where to run repo-memory-workflow commands.
 ---
 
 # Repo Memory Workflow
 
 Use this skill to help the user run repo-memory-workflow from the correct target project directory, initialize the `.ai/` workflow, split requirements into tasks, and optionally run the automated Codex relay loop.
+
+## 必须先和用户说明的流程
+
+每次用户说“安装、初始化、测试 loop、自动续跑、拆需求、做一个测试、Round 1 starting、loop 卡住”时，先用简短中文明确告诉用户：
+
+0. 第 0 步：确认目标项目目录。命令必须在真正要开发的项目根目录执行，不是在工具源码目录或用户主目录执行。
+1. 第 1 步：确认 CLI 是否安装。运行 `repo-memory-workflow --help` 或 `where repo-memory-workflow` / `which repo-memory-workflow`。
+2. 第 2 步：询问用户是否安装/启用 https://github.com/obra/superpowers 做 brainstorming 需求分析。
+3. 第 3 步：如果用户已装或愿意装，优先走 brainstorming；如果用户拒绝，用 `.ai/TASKING_GUIDE.md` 做内置拆解。
+4. 第 4 步：把需求拆进 `.ai/TASK.md` / `.ai/tasks/` / `.ai/NEXT.md`。这一步只规划，不写业务代码。
+5. 第 5 步：先跑一个小 round 或 smoke test，比如创建 `relay_test.txt`、写 `helloword`、追加 `good bye`。
+6. 第 6 步：smoke test 通过后，才建议长时间运行 `repo-memory-workflow run`。
+
+不要跳过这些说明直接启动 loop。用户如果贴出 `Round 1 starting` 卡住，先读取 `.ai/run_logs/round_1_output.log` 和 `.ai/run_logs/round_1_run.cmd`，再判断是 Codex CLI 卡住还是 runner 问题。
 
 ## Conversation opening
 

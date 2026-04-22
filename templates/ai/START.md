@@ -79,7 +79,7 @@ Each round must update checkpoint files and rewrite `.ai/NEXT.md` for the next r
 
 You can let the current Codex session supervise this command and inspect `.ai/run_logs/` if it stops. Or you can run it unattended in a terminal opened at the project root; create `.ai/STOP` or interrupt the terminal to stop the loop.
 
-Before trusting a long run, do a smoke test with three tasks: create `relay_test.txt`, write `helloword`, then append `good bye` on the next line. This verifies path handling, write permissions, and checkpoint updates.
+Before trusting a long run, do a smoke test with three tasks: create `relay_test.txt`, write `helloword`, then append `good bye` on the next line. This verifies path handling, write permissions, and checkpoint updates. On Windows, each round also writes `.ai/run_logs/round_N_run.cmd`; inspect it with `round_N_output.log` if the terminal stops at `Round N starting`.
 
 ---
 

@@ -54,14 +54,29 @@ function testRelayScriptsUseRobustCodexExec() {
   assert.match(win, /--cd/, "Windows relay should pass --cd to codex exec");
   assert.match(win, /--skip-git-repo-check/, "Windows relay should support non-Git smoke tests");
   assert.match(win, /--full-auto/, "Windows relay should request workspace-write automation");
-  assert.match(win, /exec @CodexArgs -/, "Windows relay should read the prompt from stdin");
+  assert.match(win, /round_\$\{round\}_run\.cmd/, "Windows relay should write a reproducible cmd runner per round");
+  assert.match(win, /Start-Process/, "Windows relay should start codex through a process with timeout control");
+  assert.match(win, /taskkill/, "Windows relay should kill the process tree on timeout");
+  assert.match(win, /type .* \| .* exec/, "Windows relay should feed the prompt through cmd stdin");
   assert.doesNotMatch(win, /exec \$RoundPrompt/, "Windows relay must not pass multiline prompt as a raw argument");
+  assert.doesNotMatch(win, /Start-Job/, "Windows relay should not use PowerShell background jobs");
 
   const mac = read(path.join(root, "run_loop_for_mac.sh"));
   assert.match(mac, /--cd "\$PROJECT_ROOT"/, "macOS relay should pass --cd to codex exec");
   assert.match(mac, /--skip-git-repo-check/, "macOS relay should support non-Git smoke tests");
   assert.match(mac, /--full-auto/, "macOS relay should request workspace-write automation");
   assert.match(mac, /exec -/, "macOS relay should read the prompt from stdin");
+}
+
+function testCodexSkillStartsWithChineseGuide() {
+  const skill = read(path.join(packageRoot, "integrations", "codex", "repo-memory-workflow", "SKILL.md"));
+
+  assert.match(skill, /必须先和用户说明的流程/, "Codex skill should expose the Chinese guided flow prominently");
+  assert.match(skill, /第 0 步：确认目标项目目录/, "Codex skill should start by confirming project directory");
+  assert.match(skill, /第 1 步：确认 CLI 是否安装/, "Codex skill should confirm CLI installation");
+  assert.match(skill, /第 2 步：询问用户是否安装\/启用 https:\/\/github\.com\/obra\/superpowers/, "Codex skill should ask about Superpowers");
+  assert.match(skill, /第 5 步：先跑一个小 round 或 smoke test/, "Codex skill should require a smoke test before long loops");
+  assert.match(skill, /Round 1 starting/, "Codex skill should trigger on common Windows stuck-loop symptoms");
 }
 
 function testPackIncludesRelayMemory() {
@@ -140,6 +155,7 @@ async function testRunInvokesRunLoopWithArgs() {
 async function main() {
   testInitCreatesRelayFilesWithoutOverwriting();
   testRelayScriptsUseRobustCodexExec();
+  testCodexSkillStartsWithChineseGuide();
   testRunSelectsPlatformLoop();
   await testRunMissingLoopExplainsProjectDirectoryWorkflow();
   testPackIncludesRelayMemory();

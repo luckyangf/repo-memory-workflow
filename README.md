@@ -235,7 +235,16 @@ helloword
 good bye
 ```
 
-如果卡在 `Round N starting` 或没有推进 `.ai/NEXT.md`，先查看 `.ai/run_logs/round_N_output.log`。Windows 下重点检查是否使用了 `run_loop_for_win.ps1`，以及日志里是否出现 `--cd`、`--skip-git-repo-check`、`--full-auto`。
+如果卡在 `Round N starting` 或没有推进 `.ai/NEXT.md`，先查看 `.ai/run_logs/round_N_output.log`。Windows 下还会生成 `.ai/run_logs/round_N_run.cmd`，可以直接打开它看本轮实际执行的命令。重点检查是否使用了 `run_loop_for_win.ps1`，以及命令里是否出现 `--cd`、`--skip-git-repo-check`、`--full-auto`。
+
+Windows 下如果要排除 workflow 影响，可以在项目目录直接测试 Codex CLI：
+
+```powershell
+"Create a file named codex_direct_test.txt with the text ok." |
+  codex exec --cd "C:\path\to\your\project" --skip-git-repo-check --full-auto -
+```
+
+如果这个命令也卡住，优先排查 Codex CLI 的登录态、网络、权限、state db、skills 加载问题；如果它能跑通，再看 `.ai/run_logs/round_N_run.cmd` 和 `round_N_output.log`。
 
 ---
 
