@@ -23,13 +23,20 @@
 
 ## 自动接力执行（codex exec loop）
 
-确保 `.ai/NEXT.md` 已经写好第一步动作，然后运行：
+确保 `.ai/NEXT.md` 已经写好第一步动作，然后在目标项目根目录运行：
 
 ```bash
 repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
 ```
 
-每一轮都会启动新的 `codex exec`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
+Windows PowerShell 也使用同一条命令；CLI 会自动调用 `run_loop.ps1`。每一轮都会启动新的 `codex exec`，并要求模型只执行 `.ai/NEXT.md` 的第一项，结束前写回 checkpoint 文件。
+
+如果要让 AI 监控 loop：
+
+```text
+请在当前项目目录启动 repo-memory-workflow run --max-rounds 100 --timeout 3600，并观察输出。
+如果 loop 失败或停止，请读取 .ai/run_logs/、.ai/STATE.md 和 .ai/NEXT.md，总结原因并给出下一步。
+```
 
 ## 切窗口 / 新 chat 前（生成上下文包）
 

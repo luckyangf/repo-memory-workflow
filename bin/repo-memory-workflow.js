@@ -14,8 +14,14 @@ repo-memory-workflow
 Usage:
   repo-memory-workflow init   # create or repair .ai/ relay workflow files
   repo-memory-workflow pack   # generate .ai/CONTEXT_PACK.md
-  repo-memory-workflow run    # run ./run_loop.sh (codex exec relay loop)
+  repo-memory-workflow run    # run run_loop.ps1 on Windows or ./run_loop.sh elsewhere
   repo-memory-workflow test   # testing workflow (init/cases/run/export)
+
+Run commands from the target project root. Typical flow:
+  cd <your-project-directory>
+  repo-memory-workflow init
+  # ask AI to split the requirement into .ai/TASK.md and .ai/NEXT.md
+  repo-memory-workflow run --max-rounds 10 --timeout 1800
 `);
 }
 
@@ -33,7 +39,8 @@ function main() {
     try {
       const r = init(projectRoot, packageRoot);
       console.log(`✅ Created ${r.created.length} file(s), skipped ${r.skipped.length}, updated ${r.updated.length}`);
-      console.log("Next: edit .ai/TASK.md, .ai/STATE.md, and .ai/NEXT.md");
+      console.log("Next: ask AI to split your requirement into .ai/TASK.md and write one concrete action to .ai/NEXT.md");
+      console.log("Then: repo-memory-workflow run --max-rounds 10 --timeout 1800");
       return;
     } catch (e) {
       console.error("❌ init failed:");

@@ -65,7 +65,7 @@ After `.ai/NEXT.md` contains a concrete next action, run:
 repo-memory-workflow run --max-rounds 10 --timeout 1800 --max-failures 3
 ```
 
-This calls `./run_loop.sh`. Each round starts a fresh `codex exec` process.
+This calls `./run_loop.sh` on macOS/Linux and `./run_loop.ps1` on Windows PowerShell. Each round starts a fresh `codex exec` process.
 The loop does not preserve chat history. The next round recovers from:
 
 - `AGENTS.md`
@@ -76,6 +76,8 @@ The loop does not preserve chat history. The next round recovers from:
 - `.ai/NEXT.md`
 
 Each round must update checkpoint files and rewrite `.ai/NEXT.md` for the next round.
+
+You can let the current Codex session supervise this command and inspect `.ai/run_logs/` if it stops. Or you can run it unattended in a terminal opened at the project root; create `.ai/STOP` or interrupt the terminal to stop the loop.
 
 ---
 
